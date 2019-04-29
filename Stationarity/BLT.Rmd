@@ -1,0 +1,44 @@
+---
+title: "Practice"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+```
+
+```{r 1p7}
+data(noctula)
+data(lavon)
+
+par(mfrow=c(1,2))
+plot(1:length(noctula),noctula,type="l")
+plot(1:length(lavon),lavon,type="l")
+
+par(mfrow=c(2,2))
+acf(noctula[1:48])
+acf(noctula[49:96])
+
+acf(lavon[1:56])
+pacf(lavon[57:112])
+```
+
+```{r 1p8}
+data(whale)
+
+par(mfrow=c(1,2))
+plot(1:length(whale),whale,type="l")
+
+par(mfrow=c(2,2))
+acf(whale[1:143])
+acf(whale[144:286])
+
+bonds <- read.csv("10_year_bond_rate_2010-2015.csv")
+plot(1:length(bonds$Close),bonds$Close,type="l")
+acf(bonds$Close[1:750])
+acf(bonds$Close[750:1509])
+
+```
+
+
