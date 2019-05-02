@@ -42,3 +42,15 @@ acf(bonds$Close[750:1509])
 ```
 
 
+FREQUENCY DOMAIN
+
+```{r}
+t = seq(1,100,length=100)
+f1=sin(2*pi*0.8*t+5)
+plot(t,f1,type="l")
+f2=.3*t+10
+plot(t,f2,type="l")
+f3=f1+f2
+plot(t,f3,type="l")
+```
+

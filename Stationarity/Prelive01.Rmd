@@ -1,0 +1,21 @@
+---
+title: "Unit01 PreLive"
+author: "Steve Bramhall"
+date: "May 1, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+propane <- read.csv("WeeklyPropanePricesPerGallon.csv")
+names(propane) <- c("Date","Price") # rename table columns
+plot(1:length(propane$Price),propane$Price,type="l",xlab="Time",ylab="Propane Price per Gallon")
+
+acf(propane$Price[1:1400])
+acf(propane$Price[1:700])
+acf(propane$Price[701:1400])
+```
+
