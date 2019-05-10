@@ -41,6 +41,21 @@ acf(bonds$Close[750:1509])
 
 ```
 
+```{r}
+xdf=read.csv(file.choose(),header=TRUE)
+x=as.numeric(paste(xdf$Adj.Close))
+x=x[!is.na(x)]
+n=length(x) #n=1509
+nlag=2014 #n-1, m=mean(x)
+v=var(x,na.rm=TRUE)
+gamma0=var(x)*(n-1)/n
+aut=acf(x,lag.max=2013) #n-1
+sum=0
+for (k in 1:nlag) {sum=sum+(1-k/n)*aut$acf[k+1]*gamma0}
+vxbar=2*sum/n+gamma0/n #note the mult of sum by 2
+vxbar
+```
+
 
 FREQUENCY DOMAIN
 

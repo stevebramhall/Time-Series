@@ -1,0 +1,31 @@
+---
+title: "Unit01HW"
+author: "Steve Bramhall"
+date: "May 10, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+```
+
+```{r}
+prob1 <- read.csv("Unit1Prob1-1.csv")
+names(prob1) <- c("Period","Sales") # rename table columns
+plot(1:length(prob1$Period),prob1$Sales,type="l",xlab="Period",ylab="Sales")
+```
+
+```{r}
+data(wtcrude)
+plotts.sample.wge(wtcrude,lag.max=20)
+```
+
+The Sample Autocorrelations plot shows evidence that the covariance does not depend on where in the series we are, only how far apart the observations are.
+
+
+```{r}
+data(patemp)
+plotts.sample.wge(patemp,lag.max=20)
+```
+
