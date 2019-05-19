@@ -1,0 +1,132 @@
+---
+title: "Walmart Analysis"
+author: "Steve Bramhall"
+date: "May 17, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Load Library}
+library (tidyverse)
+library (tswge)
+```
+
+```{r Read Walmart Data File}
+# Read in the data
+#Walmart = read.csv(file='https://raw.githubusercontent.com/BivinSadler/MSDS-6373-Time-Series/master/Unit%202/Walmart.csv',header = TRUE)
+Walmart = read.csv(file='Walmart.csv',header = TRUE)
+```
+
+
+```{r Store 8 Item 1}
+
+# ---Walmart Store 8,  Item 1 Filtering / spectral analysis / AR(3) ---
+
+# Load the Data for Store 8 and Item 1
+Stor8Item1 = Walmart %>% filter(item == 1 & store == 8)
+
+# Look at and Visualize the data
+head(Stor8Item1)
+plotts.wge(Stor8Item1$sales)
+
+# Break into month day and year.
+Stor8Item1 = separate(Stor8Item1,col = date,into = c("month","day","year"), sep = "/")
+
+# Change to dataframe
+Stor8Item1 = data.frame(Stor8Item1)
+
+# Look at Spectral density... evidence of yearly, monthly and weekly trend?  
+# Yearly and Monthly are going to be tough with daily data. 
+parzen.wge(Stor8Item1$sales, trunc= 500)
+
+# Change to integers for easier sorting later.... could use other package to handle dates. 
+Stor8Item1$month = as.integer(Stor8Item1$month)
+Stor8Item1$year = as.integer(Stor8Item1$year)
+
+# Aggregate to get monthly sales
+Stor8Item1_grouped = Stor8Item1 %>% group_by(year,month) %>% summarise(mean_sales = mean(sales))
+
+# Note data is out of order and that is a big deal.
+head(Stor8Item1_grouped)
+
+# Order by year and month
+Stor8Item1_grouped = Stor8Item1_grouped[order(Stor8Item1_grouped$year,Stor8Item1_grouped$month),]
+
+# Evidence of yearly trend?  Montly trend is still tough since there are differnt number of days in a month.
+parzen.wge(Stor8Item1_grouped$mean_sales)
+
+# to more clearly see the annual trend
+parzen.wge(Stor8Item1_grouped$mean_sales,trunc = 30) 
+
+# Shows combo of pseudo cyclic and wandering behavior.
+acf(Stor8Item1_grouped$mean_sales,lag = 30) 
+
+```
+
+```{r Store 8 Item 50}
+# ---Walmart Store 8,  Item 50 Filtering / spectral analysis / AR(3) ---
+
+# Load the Data
+Stor8Item50 = Walmart %>% filter(item == 50 & store == 8)
+
+# Look at and Visualize the data
+head(Stor8Item50)
+plotts.wge(Stor8Item50$sales)
+
+# Break into month day and year.
+Stor8Item50 = separate(Stor8Item50,col = date,into = c("month","day","year"), sep = "/")
+
+# Change to dataframe
+Stor8Item50 = data.frame(Stor8Item50)
+
+# Look at Spectral density... evidence of yearly, monthly and weekly trend?  
+# Yearly and Monthly are going to be tough with daily data. 
+parzen.wge(Stor8Item50$sales, trunc= 500)
+
+# Change to integers for easier sorting later.... could use other package to handle dates. 
+Stor8Item50$month = as.integer(Stor8Item50$month)
+Stor8Item50$year = as.integer(Stor8Item50$year)
+
+# Aggregate to get monthly sales
+Stor8Item50_grouped = Stor8Item50 %>% group_by(year,month) %>% summarise(mean_sales = mean(sales))
+
+# Note data is out of order and that is a big deal.
+head(Stor8Item50_grouped)
+
+# Order by year and month
+Stor8Item50_grouped = Stor8Item50_grouped[order(Stor8Item50_grouped$year,Stor8Item50_grouped$month),]
+
+# Evidence of yearly trend?  Montly trend is still tough since there are differnt number of days in a month.
+parzen.wge(Stor8Item50_grouped$mean_sales)
+
+# to more clearly see the annual trend
+parzen.wge(Stor8Item50_grouped$mean_sales,trunc = 30) 
+
+# Shows combo of pseudo cyclic and wandering behavior.
+acf(Stor8Item50_grouped$mean_sales,lag = 30) 
+```
+
+
+```{r Store 8 Item 50 MA Filtering}
+# Filtering using Moving Average
+library(stats)
+
+plotts.wge(Stor8Item50$sales)
+ma5 = stats::filter(Stor8Item50$sales,rep(1,5))/5
+plotts.wge(ma5)
+
+ma11 = stats::filter(Stor8Item50$sales,rep(1,11))/11
+plotts.wge(ma11)
+
+ma51 = stats::filter(Stor8Item50$sales,rep(1,51))/51
+plotts.wge(ma51)
+
+parzen.wge(Stor8Item50$sales, trunc = 400)
+parzen.wge(ma5[6:1821],trunc = 400)
+parzen.wge(ma51[26:1800],trunc = 400)
+```
+
+

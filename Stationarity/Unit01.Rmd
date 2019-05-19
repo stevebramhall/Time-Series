@@ -1,0 +1,180 @@
+---
+title: "Time Series"
+author: "Steve Bramhall"
+date: "May 11, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+```
+
+Stationarity
+QUESTIONS
+1. In your data set, identify  x1 , x2 , x3, and add it to your Google Doc entry under the description. 
+2. Using your time series that you selected, would you be able to obtain another realization?
+3. With respect to your time series, does it appear that the assumption of constant mean of the distribution of each Xt is reasonable?
+4. With respect to your time series, does it appear that the assumption of constant variance of the distribution of each Xt is reasonable?
+5. Provide the ACF for your time series. Is your time series stationary?
+
+```{r ACFs}
+propane <- read.csv("WeeklyPropanePricesPerGallon.csv")
+propane <- na.omit(propane)
+names(propane) <- c("Date","Price") # rename table columns
+
+#Q3, Q4
+plot(1:length(propane$Price),propane$Price,type="l",xlab="Time",ylab="Propane Price per Gallon")
+
+#Q5
+acf(propane$Price[1:1400])
+acf(propane$Price[1:700])
+acf(propane$Price[701:1400])
+```
+
+ANSWERS
+1. x1 = 0.344, x2 = 0.998, x3 = 0.656 
+2. Additional Realization: Since this is weekly Mont Belviue propane data and there is only one Mont Belviue propane set of prices and this period of time only happens once, it would be impossible to obtain another realization.
+
+3. Condition 1:
+This is about 27 years of data and there is not enough evidence for a seasonal component to the series. There is some increasing starting around week 600 but then it drops back down around week 1200. The evidence is against a stationary time series - the mean is not constant.
+4. Condition 2:
+Given that the series is not thought to be stationary, it is tough to assess the constant variance since we only have one observation per week. However, it does appear the evidence does not support constant variance.
+
+5. Condition 3:
+From the top plot of the entire series, there is no evidence of a seasonal trend and positive autocorrelation is seen.
+The ACFs of the first half (bottom left) and the second half (bottom right) of the series show correlation between data points is dependent only on how far apart they are (lag), not where they are in time. 
+
+Spectral Density
+QUESTIONS
+1. Generate the spectral density for your realization.
+2. Indicate which frequencies, if any, appear to be in your series and/or if there is evidence of wandering behavior.
+3. Comment on how the information from your spectral density is relevant to your series. (For example, if the data is seasonal on an annual basis and recorded on a monthly basis, then you would expect to see a peak in the spectral density at 1/12 = .083.)
+
+```{r Spectral Density}
+#Q1
+plotts.sample.wge(propane$Price,lag.max=40,trunc=15)
+parzen.wge(propane$Price) # plot only spectral density
+parzen.wge(propane$Price,trunc=30) # plot only spectral density
+```
+
+ANSWERS
+2. Both Parzen windows with M=74 and M=30 suggest the lack of periodic behaviors. The evidence does not show any significant or distinct peaks in the spectrum besides the one near 0 which indicates aperiodic behavior. 
+
+3. The lack of periodic behavior for this time series agrees with the previous assessment for no seasonal trend seen in the ACF plots.
+
+
+QUESTIONS
+Consider the very small (assume stationary) time series:  4,6,7,5,3
+1. What is your best estimate of the mean or the series?
+2. What is your best estimate of the variance of the series (pred_yo)?
+3. What is your best estimate of the pred_rho_1?
+4. What is your best estimate of the variance of the sample mean?
+5. Provide a 95% confidence interval for the mean of the series.
+
+```{r}
+x = c(4, 6, 7, 5, 3)
+#Q1
+paste("mean =", mean(x))
+
+#Q2
+n=5
+gamma0 = var(x)*(n-1)/n
+paste("pred yo =", gamma0)
+
+#Q3
+#aut=acf(x,lag.max=n-1) # use to plot for all lags
+aut=acf(x,plot=FALSE)
+aut
+
+#Q4
+sum=0
+for (k in 1:nlag) {
+  sum = sum + (1-k/n)*aut$acf[k+1]*gamma0
+}
+vxbar=2*sum/n + gamma0/n # note the mult of sum by 2
+paste("est variance =",vxbar)
+
+#Q5
+lower_95CI=mean(x) - 1.96*sqrt(vxbar)
+upper_95CI=mean(x) + 1.96*sqrt(vxbar)
+paste("CI:",lower_95CI,",",upper_95CI)
+
+```
+
+HW Prob 1.1-visuals, asked for hand calcs
+
+```{r}
+prob1 <- read.csv("Unit1Prob1-1.csv")
+names(prob1) <- c("Period","Sales") # rename table columns
+plot(1:length(prob1$Period),prob1$Sales,type="l",xlab="Period",ylab="Sales")
+```
+
+HW Prob 1.2
+Explain how the plots for Sample Autocorrelations, Periodogram, and Parzen Window help explain (or fail to describe)  the behaviour of the data.
+```{r}
+data(wtcrude)
+plotts.sample.wge(wtcrude,lag.max=20)
+```
+
+The Sample Autocorrelations plot shows evidence that the covariance does not depend on where in the series we are, only how far apart the observations are.
+
+```{r}
+data(patemp)
+plotts.sample.wge(patemp,lag.max=20)
+```
+
+HW Prob 1.4 (see book)
+Realization1 = d, a
+Realization2 = a, d
+Realization3 = b, c
+Realization4 = c, b
+
+
+```{r}
+Realization = gen.sigplusnoise.wge(200,coef=c(5,0),freq=c(.1,0),vara=10,sn=1)
+
+ma=filter(Realization,rep(1,10))/10
+#ma2=filter(Realization,rep(1,5))/5
+#ma3=filter(Realization,rep(1,8))/8
+```
+
+```{r}
+# generate "sample" realizations from AR(1)
+gen.arma.wge(n=100,phi=.95)       # wandering
+gen.arma.wge(n=100,phi=-.95)      # oscillating
+gen.arma.wge(n=100,phi=.95,sn=5)  # wandering
+gen.arma.wge(n=100,phi=-.95,sn=5) # oscillating
+```
+
+```{r}
+# plot the "true" theoretical acf and spectral density
+plotts.true.wge(phi=.95)  # wandering
+plotts.true.wge(phi=-.95) # oscillating
+
+# plot "sample" realization along with sample
+x=gen.arma.wge(n=200,phi=.95)
+plotts.sample.wge(x)
+
+y=gen.arma.wge(n=100,phi=-.5,sn=7)
+plotts.sample.wge(y)     # sample
+plotts.true.wge(phi=-.5) # true
+```
+
+```{r}
+gen.arma.wge(n=100,phi=c(.9999))
+gen.arma.wge(n=100,phi=c(1)) # get error
+gen.arima.wge(n=100,d=1)
+gen.arma.wge(n=50,phi=c(1.1)) # get error
+
+# Non stationary model with phi_1 = 1.1
+n=50
+x=rep(0,50) # repeat
+a=rnorm(n)  # noise terms
+x[1:50]=0
+for (k in 2:n) {
+  x[k]=1.1*x[k-1]+a[k] # a[k]=noise term
+}
+plotts.wge(x)
+```
+
