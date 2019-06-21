@@ -1,0 +1,61 @@
+---
+title: "AR(P)"
+author: "Steve Bramhall"
+date: "May 27, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+```
+
+```{r Example 1}
+#X_t - 1.95X_t-1 + 1.85X_t-2 - .855X_t-3 = a_t
+
+# Factor Table
+factor.wge(phi=c(1.95,-1.85,.855))
+
+# Plotting a realization along with tre autocorrelations & spectral density
+plotts.true.wge(phi=c(1.95,-1.85,.855))
+```
+
+```{r Example 2}
+# Factor Table
+factor.wge(phi=c(1.59,-.544,-.511,.222))
+plotts.true.wge(phi=c(1.59,-.544,-.511,.222))
+```
+
+```{r Example 3}
+# Factor Table
+factor.wge(phi=c(.2,1.23,-.26,-.66))
+plotts.true.wge(phi=c(.2,1.23,-.26,-.66))
+```
+
+```{r Example 4}
+# Factor Table
+factor.wge(phi=c(1,.5,-.8,.7))
+# *** NOT STATIONARY ***
+```
+
+```{r Example x}
+# Factor Table
+#X_t - .967X_t-1 = a_t
+factor.wge(phi=c(.967))
+plotts.true.wge(phi=c(.967))
+
+#X_t - 1.452X_t-1 + .453X_t-2 + .294X_t-3 - .175X_t-4 - .237X_t-5 + .154X_t-6 = a_t
+factor.wge(phi=c(1.452,-.453,-.294,.175,.237,-.154))
+plotts.true.wge(phi=c(1.452,- .453,-.294,.175,.237,-.154))
+
+#X_t - 1.445X_t-1 + .411X_t-2 + .038X_t-3 - .17X_t-4 - .362X_t-5 + .245X_t-6 +.177X_t-7 - .213X_t-8 = a_t
+factor.wge(phi=c(1.445,-.411,-.038,.17,.362,-.245,-.177,.213))
+# *error due to not stationary* plotts.true.wge(phi=c(1.445,-.411,-.038,.17,.362,-.245,-.177,.213))
+
+#X_t - 1.384X_t-1 + .359X_t-2 + .309X_t-3 - .063X_t-4 - .317X_t-5 + .14X_t-6 +.0587X_t-7 + .199X_t-8 - .2877= a_t
+factor.wge(phi=c(1.384,-.359,-.309,.063,.317,-.14,-.058,-.199,.2877))
+plotts.true.wge(phi=c(1.384,-.359,-.309,.063,.317,-.14,-.058,-.199,.2877))
+
+```
+
+

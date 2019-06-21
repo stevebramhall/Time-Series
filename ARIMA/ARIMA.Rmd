@@ -1,0 +1,321 @@
+---
+title: "ARIMA"
+author: "Steve Bramhall"
+date: "June 7, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+```
+
+```{r Signal Plus Noise}
+# Randomly generating signal + noise models
+gen.sigplusnoise.wge(100,b0=2, b1=4,vara=100)
+
+# white noise
+gen.sigplusnoise.wge(100,b0=0, b1=0,vara=10) 
+
+# noise from AR1 with phi 
+gen.sigplusnoise.wge(100,b0=0, b1=0,phi=.975,vara=10) 
+
+
+# Periodic Signal
+gen.sigplusnoise.wge(100,coef=c(5,0),freq=c(.1,0),psi=c(0,.25),phi=.975,vara=10)
+
+# AR(4) from the slides
+# (1-.975B)(1-.2B+.45B^2)(1+.53B)X_t = a_t
+# (1-.645B + .02225B^2 - .0969B^3 - .2325B^4)X_t = a_t
+parms=mult.wge(c(.975),c(.2-.45),c(-.53)) # careful with signs
+parms$model.coef
+gen.arma.wge(160,phi=parms$model.coef,vara=1)
+```
+
+
+
+```{r}
+# The following command differences the data in x
+#y=artrans.wge(x,phi.tr=1)
+
+# This simply means that y(i) = x(i) - x(i-1)
+
+# y has length n-1 because x(1) has no x(0) before it.
+# Example
+x=c(1,3,6,10,25)
+y=artrans.wge(x,phi.tr=1)
+y # shows the 4 differences, remember there's nothing for 1 to sub from
+```
+
+```{r}
+# ARIMA(0,1,0)
+x = gen.arima.wge(200,phi=0,var=1,d=1,sn=31)
+acf(x)
+
+Xtilde = artrans.wge(x,1) # 1st diff
+plotts.wge(Xtilde)
+acf(Xtilde)
+
+artrans.wge(x,1)
+aic5.wge(artrans.wge(x,1))
+```
+
+```{r}
+# ARIMA(2,1,0)
+# The (1-B) factor is a unit root so you'll see wandering
+# The AR2 component is where the cylclic behavior may come for
+a = gen.arima.wge(200,phi=c(1.5,-.8),var=1,d=1,sn=31)
+acf(a)
+
+model = mult.wge(fac1=c(1.5,-.8),fac2=1)
+factor.wge(model$model.coef)
+
+# remove non-stationary (1-B) portion
+FirstDif = artrans.wge(a,1) # take out (1-B)
+parzen.wge(FirstDif)
+aic5.wge(FirstDif) # check the structure of the noise
+```
+
+```{r}
+# ARIMA(2,2,1)
+# Factored form: (1-1.5B+.8B^2)(1-B)^2X_t=(1+.8B)a_t
+#   To get the factor table use factor.wge(model$model.coef)
+# The (1-B) factor is a unit root so you'll see wandering
+# The AR2 component is where the cylclic behavior may come for
+
+a = gen.arima.wge(200,phi=c(1.5,-.8),theta=-.8,d=2,vara=1,sn=21)
+acf(a)
+p=parzen.wge(a,trunc=40)
+ar=mult.wge(fac1=c(1.5,-.8),fac2=1,fac3=1)
+factor.wge(ar$model.coef)
+
+# remove non-stationary (1-B) portion
+FirstDif=artrans.wge(x,1) # take out the (1-B)
+SecondDif=artrans.wge(FirstDif,1) # take out the 2nd (1-B)
+parzen.wge(SecondDif)
+aic5.wge(SecondDif) # check the structure of the noise
+```
+
+```{r}
+# ARIMA(2,2,1)
+# (1-.6B+.8B^2)(1-B)^2X_t=(1+.3B)a_t
+
+a = gen.arima.wge(200,phi=c(.6,-.8),theta=-.3,d=2,vara=1,sn=37)
+acf(a[5])                # autocorrelation at lag 5
+plotts.true.wge(phi=c(.6,-.8),theta=-.3)
+p=parzen.wge(a,trunc=40)
+ar=mult.wge(fac1=c(1.5,-.8),fac2=1,fac3=1)
+factor.wge(ar$model.coef)
+
+# Find the system freq accociated with the complex root from the AR factor
+a = gen.arima.wge(500,phi=c(.6,-.8),theta=-.3,d=2,vara=1,sn=37)
+ar=mult.wge(fac1=c(.6,-.8),fac2=1,fac3=1)
+factor.wge(ar$model.coef)
+
+
+a = gen.arima.wge(500,phi=c(.6,-.8),theta=-.3,d=2,var=1,sn=37)
+FirstDif=artrans.wge(a,1) # take out the (1-B)
+SecondDif=artrans.wge(FirstDif,1) # take out the 2nd (1-B)
+parzen.wge(SecondDif)
+aic5.wge(SecondDif) # check the structure of the noise
+
+
+```
+
+```{r}
+# ARIMA(2,2,1)
+# (1-.6B+.8B^2)(1-B)^2X_t=(1+.3B)a_t
+
+a = gen.arima.wge(500,phi=c(.6,-.8),d=2,vara=1,sn=35)
+acf(a)
+plotts.true.wge(phi=c(.6,-.8),theta=-.3)
+p=parzen.wge(a,trunc=40)
+ar=mult.wge(fac1=c(1.5,-.8),fac2=1,fac3=1)
+factor.wge(ar$model.coef)
+
+FirstDif=artrans.wge(a,1) # take out the (1-B)
+SecondDif=artrans.wge(FirstDif,1) # take out the 2nd (1-B)
+parzen.wge(SecondDif)
+aic5.wge(SecondDif) # check the structure of the noise
+```
+
+```{r Stock Data}
+data=read.csv("StockData.csv")
+x = artrans.wge(data$Close,1)
+aic5.wge(x)
+```
+
+```{r ARUMA Seasonal Data}
+# (1-B^4)=a_t
+x1=gen.aruma.wge(n=80,s=4,sn=6)
+plotts.sample.wge(x1)
+
+
+# (1-B^4) with ARMA(2,1)
+x2=gen.aruma.wge(n=80,phi=c(1,-.6),s=4,theta=-0.5, sn=6)
+plotts.sample.wge(x2)
+
+factor.wge(phi=c(1,-.6)) # factor table for phi component
+factor.wge(phi=-.5) # factor table for theta component
+
+# (1-B^12) with ARMA(2,1)
+x3=gen.aruma.wge(n=180,phi=c(1,-.6),s=12,theta=-0.5, sn=6)
+plotts.sample.wge(x3,lag.max = 48)
+
+# (1-.6B+.94B^2)(1-B^6)X_t = (1+.3B)a_t
+x4=gen.aruma.wge(n=180,phi=c(.6,-.94),s=6,theta=-0.3, sn=19)
+plotts.sample.wge(x4,lag.max = 48)
+
+```
+
+
+```{r}
+# (1-B^4)X_t = a_t
+# tswge function the generate ARIMA & seasonal models
+x=gen.aruma.wge(n=80,s=4, sn=81) 
+
+#take out the (1-B^4)
+dif=artrans.wge(x,c(0,0,0,1))
+
+# check structure of noise
+aic5.wge(dif) 
+
+# (1-.4B-.6B^2+.74B^3)(1-B^12)X_t=(1+.7B)a_t
+x1 = gen.aruma.wge(n=80,phi=c(.4,.6,-.74),theta=c(-.7),s=12,sn=31)
+dif = artrans.wge(x,c(rep(0,11),1)) #take out the 1-B^12
+aic5.wge(dif)
+
+```
+
+```{r concept check6p6}
+# (1-.6B+.8B^2)(1-B^12)X_t=(1-.3B+.7B^2)a_t
+x1 = gen.aruma.wge(n=500,phi=c(.6,-.8),theta=c(.3,-.7),s=12,sn=31)
+dif = artrans.wge(x1,c(rep(0,11),1)) #take out the 1-B^12
+aic5.wge(dif)
+
+```
+
+```{r factor tables}
+factor.wge(c(0,0,0,1)) # (1-B^4)
+factor.wge(c(0,0,0,0,0,0,0,0,0,0,0,1)) # (1-B^12)
+factor.wge(c(rep(0,3),1))
+factor.wge(c(rep(0,11),1))
+factor.wge(c(rep(0,4),1)) # 5th order factor table
+factor.wge(c(rep(0,6),1)) # 7th order factor table
+
+# (.2B-.4B^2-.49B^3-1B^12-.2B^13+.4B^14+.49B^15)X_t=(1+.92B)a_t
+
+# Factor Tables
+factor.wge(c(-.2,.4,.49,0,0,0,0,0,0,0,0,1,.2,-.4,-.49))
+
+#
+factor.wge(c(-.3,.8,0,0,1,.3,-.8))
+```
+
+```{r}
+factor.wge(c(rep(0,5),1)) # 6th order factor table
+factor.wge(c(-.5,.2,0,-1,.5,-.2))
+
+#biannual
+factor.wge(c(0,1))
+
+#monthly
+factor.wge(c(rep(0,11),1))
+
+#quarterly
+factor.wge(c(0,0,0,1))
+
+
+```
+
+
+```{r}
+factor.wge(c(-.3,1.2,.4,0,.5,c(rep(0,6)),-1,.3,-1.2,-.4))
+
+#biannual
+factor.wge(c(0,1))
+
+#monthly
+factor.wge(c(rep(0,11),1))
+
+#quarterly
+factor.wge(c(0,0,0,1))
+
+
+```
+
+```{r airline model}
+data(airlog)
+plotts.wge(airlog)
+plotts.sample.wge(airlog)
+
+# take first differences of the data
+SA1 = artrans.wge(airlog,1)
+plotts.sample.wge(SA1)
+
+# take the 12th diff of the original data (1-B12)
+SA12 = artrans.wge(airlog,c(rep(0,11),1))
+
+# take the 12th diff of the original data (1-B)(1-B12)
+SA1_12 = artrans.wge(SA1,c(rep(0,11),1))
+
+Parzen = aic.wge(SA12,p=12) # Phi(B)(1-B12)(Xt-mu) = at
+Box = aic.wge(SA1_12,q=13) # Phi(B)(1-B12)(Xt-mu) = Theta(B)at
+WoodwardAndGray = aic.wge(SA1_12,p=12) # Phi(B)(1-B)(1-B12)(Xt-mu) = at
+
+Parzen$value
+Box$value
+WoodwardAndGray$value
+```
+
+```{r}
+# (1-.76B-.94B^2+.75B^5)X_t=a_t
+factor.wge(c(.76,0,0,0.94,-.75))
+
+#biannual
+factor.wge(c(0,1))
+
+#monthly
+factor.wge(c(rep(0,11),1))
+
+#quarterly
+factor.wge(c(0,0,0,1))
+
+# shows quarterly seasonality
+
+```
+
+
+```{r Midterm Review}
+a=gen.aruma.wge(5000,d=1,vara=1,sn=6)
+plotts.sample.wge(a)
+plot(a[1:4999],a[2:5000], xlab = "X_t-1", ylab = "X_t", main = "Plot of X_t vs. X_t-1")
+
+
+amtrak <- read.csv("D:/Steve/Github/TimeSeries/DATA/AmtrakPassengersMonthly.csv")
+a=amtrak$Ridership
+plotts.sample.wge(a)
+ar_12 = artrans.wge(a,phi.tr=c(rep(0,11),1)) 
+# doen't look like whitenoise but let's try 
+aic5.wge(ar_12)
+#model the 2 phi's and theta's then take a diff  
+
+```
+
+
+
+```{r Example}
+s = c(5,8,9,8,7,6,4,3)
+plotts.wge(s)
+#AR(1)
+fore.arma.wge(s,phi=c(1.7,-.72),n.ahead=10)# factor to 2 AR(1)s with 2 pos Phi's
+# the forecasts should slowly come back to the mean
+
+factor.wge(phi=c(1.7,-.72)) # roots are real so the plost dampens to mu
+
+# AR(2) with complex root
+factor.wge(phi=c(.9,-.32)) 
+fore.arma.wge(s,phi=c(.9,-.32),n.ahead=20)
+```
+
+

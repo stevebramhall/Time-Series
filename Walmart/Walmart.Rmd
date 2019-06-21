@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r Load Library}
 library (tidyverse)
 library (tswge)
+library(stats)
 ```
 
 ```{r Read Walmart Data File}
@@ -112,7 +113,6 @@ acf(Stor8Item50_grouped$mean_sales,lag = 30)
 
 ```{r Store 8 Item 50 MA Filtering}
 # Filtering using Moving Average
-library(stats)
 
 plotts.wge(Stor8Item50$sales)
 ma5 = stats::filter(Stor8Item50$sales,rep(1,5))/5
@@ -129,4 +129,93 @@ parzen.wge(ma5[6:1821],trunc = 400)
 parzen.wge(ma51[26:1800],trunc = 400)
 ```
 
+```{r Store 9 Item 50 MA Filtering}
+# Filtering using Moving Average
+# Load the Data
+Stor9Item50 = Walmart %>% filter(item == 50 & store == 9)
+
+# Look at and Visualize the data
+head(Stor9Item50)
+plotts.wge(Stor9Item50$sales)
+
+# Break into month day and year.
+Stor9Item50 = separate(Stor9Item50,col = date,into = c("month","day","year"), sep = "/")
+
+# Change to dataframe
+Stor9Item50 = data.frame(Stor9Item50)
+```
+
+```{r Check Store 9 Item 50 Via MA Filtering}
+plotts.sample.wge(Stor9Item50$sales)
+parzen.wge(Stor9Item50$sales)
+
+ma5 = stats::filter(Stor9Item50$sales,rep(1,5))/5
+plotts.wge(ma5)
+parzen.wge(ma5[6:1821],trunc = 400)
+
+ma11 = stats::filter(Stor9Item50$sales,rep(1,11))/11
+plotts.wge(ma11)
+parzen.wge(ma11[6:1821],trunc = 400)
+
+ma51 = stats::filter(Stor9Item50$sales,rep(1,51))/51
+plotts.wge(ma51)
+parzen.wge(ma51[26:1800],trunc = 400)
+
+
+```
+
+
+```{r Store 9}
+#X_t - .967X_t-1 = a_t
+factor.wge(phi=c(.967))
+plotts.true.wge(phi=c(.967))
+
+#X_t - 1.452X_t-1 + .453X_t-2 + .294X_t-3 - .175X_t-4 - .237X_t-5 + .154X_t-6 = a_t
+factor.wge(phi=c(1.452,-.453,-.294,.175,.237,-.154))
+plotts.true.wge(phi=c(1.452,- .453,-.294,.175,.237,-.154))
+
+#X_t - 1.445X_t-1 + .411X_t-2 + .038X_t-3 - .17X_t-4 - .362X_t-5 + .245X_t-6 +.177X_t-7 - .213X_t-8 = a_t
+factor.wge(phi=c(1.445,-.411,-.038,.17,.362,-.245,-.177,.213))
+# not stationary
+#plotts.true.wge(phi=c(1.445,-.411,-.038,.17,.362,-.245,-.177,.213))
+
+#X_t - 1.384X_t-1 + .359X_t-2 + .309X_t-3 - .063X_t-4 - .317X_t-5 + .14X_t-6 +.0587X_t-7 + .199X_t-8 - .2877= a_t
+factor.wge(phi=c(1.384,-.359,-.309,.063,.317,-.14,-.058,-.199,.2877))
+plotts.true.wge(phi=c(1.384,-.359,-.309,.063,.317,-.14,-.058,-.199,.2877))
+
+```
+
+```{r}
+factor.wge(phi=c(.1516,.0769,.0016,-.0095,.1117,.5683))
+plotts.true.wge(phi=c(.1516,.0769,.0016,-.0095,.1117,.5683))
+
+factor.wge(phi=c(.4295,.1769,.0358,.1454))
+plotts.true.wge(phi=c(.4295,.1769,.0358,.1454))
+
+factor.wge(phi=c(0.1529, 0.0988, 0.0059, -0.0075, 0.0538, 0.1118, 0.5717, 0.0034, -0.0382))
+plotts.true.wge(phi=c(0.1529, 0.0988, 0.0059, -0.0075, 0.0538, 0.1118, 0.5717, 0.0034, -0.0382 ))
+
+
+```
+
+```{r}
+plotts.true.wge(phi=c(.15, -.4))
+
+plotts.true.wge(phi=c(-.15, -.4))
+
+plotts.true.wge(phi=c(-.9))
+
+#plotts.true.wge(-.9, .67, -.2994)
+
+```
+
+```{r}
+plotts.wge(Stor8Item1$sales)
+plotts.wge(Stor8Item50$sales)
+plotts.wge(Stor9Item50$sales)
+
+aic5.wge(Stor8Item1$sales)
+aic5.wge(Stor8Item50$sales)
+aic5.wge(Stor9Item50$sales)
+```
 

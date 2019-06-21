@@ -1,0 +1,160 @@
+---
+title: "MA_ARMA"
+author: "Steve Bramhall"
+date: "May 31, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+```
+
+```{r}
+# Generating MA(1) data
+gen.arma.wge(n=100,theta=-.99)
+gen.arma.wge(n=100,theta=.99)
+gen.arma.wge(n=100,theta=-.99,sn=5)
+gen.arma.wge(n=100,theta=.99,sn=5)
+plotts.true.wge(n=100,theta=c(-.99))
+plotts.true.wge(n=100,theta=c(.99))
+
+# Generating MA(2) data from BLT EX 2
+gen.arma.wge(n=100,theta=c(.9,-.4))
+plotts.true.wge(theta=c(.9,-.4))
+
+
+# X_t = a_t + .7a_t-1
+plotts.true.wge(theta=c(-.7))
+
+# X_t = a_t + .1a_t-1 - .3a_t-2
+plotts.true.wge(theta=c(-.1,.3))
+
+
+# AR(2): X_t - 1.1X_t-1 + .9X_t-2 = at
+plotts.true.wge(phi=c(1.1,-.9))              # AR uses phi
+
+# MA(2): a_t - 1.1a_t-1 - .9a_t-2
+plotts.true.wge(theta=c(1.1,-.9))            # MA uses theta
+
+# INVESTIGATE INVERTABILITY, using phi is ok for testing invertability
+# MA(2): a_t - 1.6a_t-1 + .9a_t-2
+factor.wge(phi=c(1.6,-.9))                   # abs recip < 1 so invertable
+
+# MA(2): a_t - 1.6a_t-1 - .9a_t-2
+factor.wge(phi=c(1.6,.9))       # 1 root's abs recip > 1 so not invertable
+
+# MA(2): a_t - .1a_t-1 - .3a_t-2
+factor.wge(phi=c(.1,.3))       # all roots/ abs recip < 1 so invertable
+
+# MA(2): a_t + .1a_t-1 - .3a_t-2
+factor.wge(phi=c(-.1,.3))       # all roots/ abs recip < 1 so invertable
+plotts.true.wge(phi=c(-.1,.3))              # AR uses phi
+
+# CHECK CANCELLATION BETWEEN MODELS
+# AR(2,1): X_t + .1X_t-1 + .82X_t-2 -.16X_t-3 = a_t + .2a_t-1
+plotts.true.wge(250,phi=c(-.1,-.82,.16),theta=c(-.2))
+
+# Model 1: X_t + .1X_t-1 = a_t
+plotts.true.wge(250,phi=c(-.1))      # different
+
+# Model 2: X_t = a_t - .2a_t-1
+plotts.true.wge(250,phi=c(.2))       # different
+
+# Model 3: X_t - .1X_t-1 + .8X_t-2 = a_t
+plotts.true.wge(250,phi=c(.1,-.8))   # same as this AR(2)
+```
+
+```{r}
+# The model is not stationary
+
+# CHECK CANCELLATION BETWEEN MODELS
+# AR(2,2): X_t - 1.95X_t-1 + 1.9X_t-2 = a_t - 1.95a_t-1 + 1.9a_t-2
+#plotts.true.wge(250,phi=c(1.95,-1.9),theta=c(1.95,-1.9))
+
+# Model 1: X_t = a_t - 1.95a_t-1
+#plotts.true.wge(theta=c(1.95))
+
+# Model 1: X_t - 1.9X_t-1 = a_t - 1.95a_t-1
+#plotts.true.wge(250,phi=c(1.9),theta=c(1.95))
+
+```
+
+```{r Blend AR and MA to get ARMA}
+# AR factors
+plotts.true.wge(phi=c(.3,.9,.1,-.8075)) # AR(4) model
+factor.wge(c(.3,.9,.1,-.8075))
+
+# MA factors
+plotts.true.wge(theta=c(-.9,-.8,-.72)) # MAq model
+factor.wge(c(-.9,-.8,-.72))
+
+# ARMA(4,3) built from AR + MA
+plotts.true.wge(phi=c(.3,.9,.1,-.8075),theta=c(-.9,-.8,-.72))
+
+plotts.true.wge(phi=c(.1,-.5,.7),theta=c(.72,-.8))
+```
+
+```{r AIC5 for TOP 5 AIC MODELS}
+# SWA Delay Analysis
+SWA = read.csv(file='swadelay.csv',header=TRUE)
+plotts.wge(SWA$arr_delay)            # plot data
+plotts.sample.wge(SWA$arr_delay)     # review est acf, autocor, spec dens
+aic5.wge(SWA$arr_delay)              # get top AIC models
+```
+
+```{r Find PSI Weights}
+# psi-weights for simple MA(1) model X(t)=(1-.8B)a(t)
+psi.weights.wge(theta=.8,lag.max = 5)
+
+# psi-weights for simple AR(1) model (1-.8B)X(t)=a(t)
+psi.weights.wge(phi=.8,lag.max = 5)
+
+# psi-weights for ARMA(2,1) model (1-1.2B+.6B^2)=(1-.5B)a(t)
+psi.weights.wge(phi=c(1.2,-.6),theta=c(.5),lag.max = 5)
+
+# X_t - 1.95X_t-1 + 1.9X_t-2 = a_t
+#-> (1-1.95B+1.9B^2)=a_t
+#-> phi = 1.95,-1.9
+psi.weights.wge(phi=c(1.95,-1.9),lag.max=5)
+```
+
+```{r AIC5 for Propane Data}
+propane <- read.csv("WeeklyPropanePricesPerGallon.csv")
+propane <- na.omit(propane)
+names(propane) <- c("Date","Price") # rename table columns
+plot(1:length(propane$Price),propane$Price,type="l",xlab="Time",ylab="Propane Price per Gallon")
+
+aic5.wge(propane$Price)              # get top AIC models
+```
+
+```{r Prelive Make Up a ARMA Model}
+plotts.true.wge(phi=c(-.1,.7),theta=c(-.2,.1))
+
+```
+
+```{r AIC Models for Airline Cancellations}
+aic5.wge(SWA$arr_cancelled)  
+```
+
+```{r check rhos}
+# X_t = a_t - .8a_t-1 + .5a_t-2
+plotts.true.wge((theta=c(.8,0.5)))
+```
+
+```{r Find PSI Weights}
+# psi-weights for simple MA(1) model X(t)=(1-.8B)a(t)
+psi.weights.wge(theta=.8,lag.max = 5)
+
+# psi-weights for simple AR(1) model (1-.8B)X(t)=a(t)
+psi.weights.wge(phi=.8,lag.max = 5)
+
+# psi-weights for ARMA(2,1) model (1-1.2B+.6B^2)=(1-.5B)a(t)
+psi.weights.wge(phi=c(1.2,-.6),theta=c(.5),lag.max = 5)
+
+# X_t - 1.95X_t-1 + 1.9X_t-2 = a_t
+#-> (1-1.95B+1.9B^2)=a_t
+#-> phi = 1.95,-1.9
+psi.weights.wge(phi=c(1.95,-1.9),lag.max=5)
+```
+

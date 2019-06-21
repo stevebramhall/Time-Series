@@ -19,7 +19,7 @@ QUESTIONS
 5. Provide the ACF for your time series. Is your time series stationary?
 
 ```{r ACFs}
-propane <- read.csv("WeeklyPropanePricesPerGallon.csv")
+propane <- read.csv("data/WeeklyPropanePricesPerGallon.csv")
 propane <- na.omit(propane)
 names(propane) <- c("Date","Price") # rename table columns
 
@@ -105,7 +105,7 @@ paste("CI:",lower_95CI,",",upper_95CI)
 HW Prob 1.1-visuals, asked for hand calcs
 
 ```{r}
-prob1 <- read.csv("Unit1Prob1-1.csv")
+prob1 <- read.csv("data/Unit1Prob1-1.csv")
 names(prob1) <- c("Period","Sales") # rename table columns
 plot(1:length(prob1$Period),prob1$Sales,type="l",xlab="Period",ylab="Sales")
 ```

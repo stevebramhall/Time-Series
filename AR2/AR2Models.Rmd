@@ -1,0 +1,89 @@
+---
+title: "AR2 Models"
+author: "Steve Bramhall"
+date: "May 19, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+```
+
+```{r}
+# Xt - .2X_t-1 - .48X_t-2 one positive and one negative root
+x = gen.arma.wge(200,phi=c(.2,.48))
+plotts.sample.wge(x)
+plotts.true.wge(phi = c(.2,.48))
+
+# Xt - 1.4X_t-1 + .48X_t-2 = a_t -> (1+.88)(1+.65)X_t, two positive roots
+x = gen.arma.wge(200, phi = c(1.4,-.48))
+plotts.sample.wge(x)
+plotts.true.wge(phi = c(1.4,-.48))
+
+# Xt + 1.4X_t-1 + .48X_t-2 = a_t -> (1+.88)(1+.65)X_t, two negative roots
+x = gen.arma.wge(200, phi = c(-1.4,-.48))
+plotts.sample.wge(x)
+plotts.true.wge(phi = c(-1.4,-.48))
+```
+
+
+```{r Unit3 Live Session}
+# gen.arma.wge(n=observations to generate,phi,var=noise level,plot,sn=seed)
+# abs(phi) < 1 = stationary
+gen.arma.wge(100,phi=.99)
+acf(gen.arma.wge(100,phi=.99))
+parzen.wge(gen.arma.wge(100,phi=.99))
+
+#1cos2pi(.13)t
+x=gen.sigplusnoise.wge(n=100,coef=c(1,0),freq=c(.13,0),vara=1,sn=8)
+x
+parzen.wge(x)
+
+# add 2nd cos: 1cos2pi(.13)t+cos2pi(.39)t
+x=gen.sigplusnoise.wge(n=100,coef=c(1,0),freq=c(.13,.39),vara=1,sn=8)
+
+# add noise
+x=gen.sigplusnoise.wge(n=100,coef=c(1,0),freq=c(.13,.39),vara=10,sn=8)
+
+#1cos2pi(.13)t
+x=gen.sigplusnoise.wge(n=100,coef=c(1,0),freq=c(.13,0),vara=1,sn=8)
+ma = stats::filter(x,rep(1,5)/5) # 5pt ma
+plot(ma, type = "l") # l = line
+parzen.wge(ma[!is.na(as.numeric(ma))]) # remove na's, for a 5 Ma there will be 2 at each end
+
+filteredx = butterworth.wge(x,order=4, type="low",cutoff = .2)
+parzen.wge(filteredx$x.filt)
+
+filteredx = butterworth.wge(x,order=4, type="pass",cutoff = c(.1,.2))
+parzen.wge(filteredx$x.filt)
+parzen.wge(filteredx$x.filt,trunc=50) # attempt to see peak better
+```
+
+```{r breakout1 unit03}
+data = read.csv("Unit3BOut1Part1.csv",header=TRUE)
+lowpass = butterworth.wge(data$x,order=4, type="low",cutoff = .2)
+highpass = butterworth.wge(data$x,order=4, type="high",cutoff = .2)
+bp = butterworth.wge(data$x,order=4, type="pass",cutoff = c(.1,.2))
+parzen.wge(bp$x.filt,trunc=60)
+parzen.wge(lowpass$x.filt,trunc=60)
+parzen.wge(highpass$x.filt,trunc=60)
+
+ma = stats::filter(data,rep(1,8)/8) # 5pt ma
+plot(ma, type = "l") # l = line
+parzen.wge(ma[!is.na(as.numeric(ma))]) # remove na's, for a 5 Ma there will be 2 at each end
+plot(data,type='l')
+
+# expected work was to analyze, not just play aroudn :)
+plotts.wge(data$x)
+ma = stats::filter(data$x,rep(1,5)/5) # 5pt ma
+parzen.wge(ma[!is.na(as.numeric(ma))]) # remove na's, for a 5 Ma there will be 2 at each end
+dif = diff(data$x,lag=1)
+plot(dif,type='l')
+parzen.wge(dif)
+
+lowpass = butterworth.wge(data$x,type="low",cutoff = .45)
+parzen.wge(lowpass$x.filt,trunc=50)
+
+```
+
