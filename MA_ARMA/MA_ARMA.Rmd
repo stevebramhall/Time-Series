@@ -158,3 +158,18 @@ psi.weights.wge(phi=c(1.2,-.6),theta=c(.5),lag.max = 5)
 psi.weights.wge(phi=c(1.95,-1.9),lag.max=5)
 ```
 
+```{r}
+# Generate the autocorrelation and density plots for
+# (1-.975B)(1-.2B+.45B^2)(1+.53B)Xt = at
+
+#1. Get the coefficients
+parms = mult.wge(c(.975),c(.2,-.45),c(-.53))
+#2. Print coefficients
+parms$model.coef
+#3. Generate the signal
+x=gen.arma.wge(160,phi=parms$model.coef,vara=1)
+x
+#4 Generate the ACF
+plotts.sample.wge(x,lag.max=5)
+```
+

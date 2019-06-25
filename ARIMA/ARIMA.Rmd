@@ -146,7 +146,7 @@ aic5.wge(x)
 ```
 
 ```{r ARUMA Seasonal Data}
-# (1-B^4)=a_t
+# (1-B^4)=a_t, Quarterly behavior
 x1=gen.aruma.wge(n=80,s=4,sn=6)
 plotts.sample.wge(x1)
 
@@ -158,7 +158,7 @@ plotts.sample.wge(x2)
 factor.wge(phi=c(1,-.6)) # factor table for phi component
 factor.wge(phi=-.5) # factor table for theta component
 
-# (1-B^12) with ARMA(2,1)
+# (1-B^12) with ARMA(2,1), Monthly behavior
 x3=gen.aruma.wge(n=180,phi=c(1,-.6),s=12,theta=-0.5, sn=6)
 plotts.sample.wge(x3,lag.max = 48)
 
@@ -318,4 +318,8 @@ factor.wge(phi=c(.9,-.32))
 fore.arma.wge(s,phi=c(.9,-.32),n.ahead=20)
 ```
 
+```{r}
+mult.wge(fac1=.4,fac2=-.5)
+
+```
 
