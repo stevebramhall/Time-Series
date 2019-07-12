@@ -14,17 +14,18 @@ library(tswge)
 # AR(1) Phi Positive
 data(fig6.1nf)
 plotts.wge(fig6.1nf)
+plotts.sample.wge(fig6.1nf)
 
 # n=how many forecasts ahead do you want to make
 fore.arma.wge(fig6.1nf,phi=.8,n.ahead=20,plot=TRUE,limits=FALSE)
 
 # AR(1) Phi Negative
 x1 = gen.arma.wge(100, phi=-.8)
-fore.arma.wge(x1,phi=-8,n.ahead = 20,plot=TRUE,limits=FALSE)
+fore.arma.wge(x1,phi=-.8,n.ahead = 20,plot=TRUE,limits=FALSE)
 
 # AR(2)
 x2=gen.arma.wge(n=75,phi=c(1.6,-.8),sn=24)
-# mean = 25
+# set mean = 25
 x2=x2+25
 plotts.wge(x2)
 
@@ -67,6 +68,16 @@ fore.arma.wge(x4,phi=c(.967),theta=-.477)
 x5=gen.arma.wge(n=100,phi=c(.4411,.0185,-.1193,.0815,-.0003,.0152,.0562,-.094,.0558,.066,.0172,.3685))
 fore.arma.wge(x5,phi=c(.4411,.0185,-.1193,.0815,-.0003,.0152,.0562,-.094,.0558,.066,.0172,.3685),theta=-.477,n.ahead=20,limits=T)
 
+```
+
+```{r BLT7p6}
+# (1-.4B+.6B^2-.8B^3)(X_t-9)=a_t
+psi.weights.wge(phi=c(.4,-.6,.8),lag.max = 5)
+s = 1 + .4*.4 + .44*.44
+x=gen.arma.wge(n=100,phi=c(.4,-.6,.8))
+fore.arma.wge(x,phi=c(.4,-.6,.8),n.ahead=12,lastn=T,limits=F)
+
+### BOOOO
 ```
 
 ```{r Calc Psi Weights}
@@ -149,16 +160,19 @@ wood = fore.aruma.wge(airlog,d=1,s=12,phi=c(-.36,-.05,-.14,-.11,.04,.09,-.02,.02
 
 ```{r Forecast ARIMA}
 # ARIMA(0,1,0)
+# The forecast = the last value
 x=gen.aruma.wge(n=50,phi=.8,d=1,sn=15)
 fore.aruma.wge(x,d=1,n.ahead=20,limits=F)
 
-# ARIMA (1,1,0)
+# ARIMA (1,1,0), AR + (1-B) time
+# Forecast increases & converges to some value that isn't the mean
 x=gen.aruma.wge(n=50,phi=.8,d=1,sn=15)
 fore.aruma.wge(x,phi=.8,d=1,n.ahead=20,limits=F)
 
 # ARIMA(0,2,0)
+# Forecast follows tread of last 2 data points
 x=gen.aruma.wge(n=50,phi=.8,d=1,sn=15)
-fore.aruma.wge(x,d=2,n.ahead=20,limits=F)
+fore.aruma.wge(x,d=2,n.ahead=20,limits=T)
 
 ```
 
@@ -167,6 +181,7 @@ fore.aruma.wge(x,d=2,n.ahead=20,limits=F)
 x=gen.aruma.wge(n=20,s=4,sn=6)
 fore.aruma.wge(x,s=4,n.ahead=8,lastn=F,plot=T,limits=F)
 
+# turn on last n to check model vs actual
 x=gen.aruma.wge(n=20,s=4,sn=6)
 fore.aruma.wge(x,s=4,n.ahead=8,lastn=T,plot=T,limits=F)
 
@@ -174,7 +189,16 @@ fore.aruma.wge(x,s=4,n.ahead=8,lastn=T,plot=T,limits=F)
 x=gen.aruma.wge(n=20,phi=.8,s=4,sn=6)
 fore.aruma.wge(x,phi=.8,s=4,n.ahead=8,limits=F)
 
+
+
+# airline modes
 data(airlog)
+# (B)(1-B^12)(X_t - u) = a_t
+# flat, last value, no trend
+parzen=fore.aruma.wge(airlog,d=0,s=12,phi=c(.74,0,0,0,0,0,0,0,0,0,0,.38,-.2812),n.ahead=36,lastn=T,limits=F)
+
+# (1-B)(1-B^12)(X_t) = a_t
+# seasonality and trend continues due to (1-B), d=1
 wood = fore.aruma.wge(airlog,d=1,s=12,phi=c(-.36,-.05,-.14,-.11,.04,.09,-.02,.02,.17,.03,-.1,-.38),n.ahead=36,lastn=T,limits=F)
 Box_ASE=mean((airlog[(144-36+1):144]-wood$f)^2)
 Box_ASE
@@ -187,7 +211,7 @@ xfore=fore.sigplusnoise.wge(x,linear=T,n.ahead=20,lastn=F,limits=F)
 
 ```
 
-```{r}
+```{r For Live Session}
 x=c(5,8,9,8,7,6,4,3)
 mult.wge(.9,.8)
 sdx=sd(x)

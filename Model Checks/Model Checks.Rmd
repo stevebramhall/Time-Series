@@ -1,0 +1,411 @@
+---
+title: "Residual Analysis"
+author: "Steve Bramhall"
+date: "July 10, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+```
+
+The model such as AR assume the at value is white noise. The following steps show how to check the residuals of your final model to confirm the model's validity.
+
+```{r Check Residuals for White Noise Example 1}
+# (1-1.6B+.9B^2)(Xt-10)=(1-.8B)at
+x=gen.arma.wge(n=100,phi=c(1.6,-.90),theta=.8,sn=67)
+x=x+10; # add mean
+
+# 1. Visually check for white noise
+plotts.sample.wge(x) 
+
+# 2. Find the model for the data
+aic5.wge(x,p=0:8,q=0:4)
+#AIC picd ARMA(2,1)
+
+# 3. Model the data
+x21=est.arma.wge(x,p=2,q=1)
+x21$res
+x=1:100;
+plot(x,x21$res,type="l")
+plotts.sample.wge(x21$res)
+
+# 4. check1: do residuals look like white noise?
+acf(x21$res)
+
+# 5. check2: check pvalue for K=24 and 48
+ljung.wge(x21$res,p=2,q=1)
+ljung.wge(x21$res,p=2,q=1,K=48)
+
+```
+
+```{r Check Residuals for White Noise Example 2}
+# (1-B^12)(1-1.5B+.8B^2)(Xt - 50)=at
+x = gen.aruma.wge(n=200,s=12,phi=c(1.5,-.8),sn=87)
+x=x+50
+plotts.sample.wge(x,lag.max=60)
+
+# Let's overfit with p=10 & chk the factor table
+est.ar.wge(x,p=14,type='burg')    
+# suggest 1-B^12
+
+# remove non-stationarity
+y=artrans.wge(x,phi.tr=c(rep(0,11),1))
+
+aic5.wge(y,type='bic')
+# BIC suggest AR2
+
+# fit the model
+x2=est.ar.wge(y,p=2)
+
+# check 1, review for white noise
+plotts.sample.wge(x2$res)
+acf(x2$res)
+
+# check 2, Ljung-Box test
+ljung.wge(x2$res,p=2)
+ljung.wge(x2$res,p=2,K=48)
+
+```
+
+```{r Check Residuals for White Noise Example 3}
+data(airlog)
+# check if data is white noise, check stationarity
+plotts.sample.wge(airlog)
+
+# check factors to remove to make stationary
+airest=est.ar.wge(airlog,p=14,type='burg')   # overfit 1
+airest=est.ar.wge(airlog,p=16,type='burg')   # overfit 2
+
+# remove factors causing non-stationarity
+d1=artrans.wge(airlog,phi.tr=1)              # remove trend (1-B)
+d1.12=artrans.wge(d1,phi.tr=c(rep(0,11),1))  # remove seasonality (1-B^12)
+
+# search/select a model using AIC
+aic5.wge(d1.12,p=0:15,q=0:4)                 # ARMA(12,1) selected
+
+# fit the model
+est.12.1=est.arma.wge(d1.12,p=12,q=1)
+
+# residuals check 1
+plotts.sample.wge(est.12.1$res)
+acf(est.12.1$res)                            # acf w/ CIs appear white
+
+# residuals check 2
+ljung.wge(est.12.1$res,p=12,q=1)             # FTR at alpha .05, is white
+ljung.wge(est.12.1$res,p=12,q=1,K=48)        # FTR at alpha .05, is white
+```
+
+```{r Woodward Model}
+# take first differences of the data (1-B)
+SA1 = artrans.wge(airlog,phi.tr=1)
+
+# take the 12th diff of the original data (1-B12)
+#SA12 = artrans.wge(airlog,c(rep(0,11),1))
+
+# take the 12th diff of the original data (1-B)(1-B12)
+SA1_12 = artrans.wge(SA1,c(rep(0,11),phi.tr=1))
+
+# search/select a model using AIC
+aic5.wge(SA1_12,p=0:15,q=0:3)             # ARMA(12,1) selected
+
+# fit the model
+est.SA1_12=est.arma.wge(SA1_12,p=12,q=1)
+
+# residuals check 1
+plotts.sample.wge(est.SA1_12$res)
+acf(est.SA1_12$res)                       # acf w/ CIs appear white
+
+# residuals check 2
+ljung.wge(est.SA1_12$res,p=12,q=1)        # FTR at alpha .05, is white
+ljung.wge(est.SA1_12$res,p=12,q=1,K=48)   # FTR at alpha .05, is white
+
+# Model checks out, let's forecast
+TwoMonthFore = fore.aruma.wge(airlog,d=1,s=12,phi=est.12.1$phi,theta=est.12.1$theta,n.ahead=2,limits=T)
+TwoMonthFore
+```
+
+```{r Global Temp Modeled as Stationary}
+data(hadley)
+mean(hadley)
+plotts.sample.wge(hadley)
+
+# Model as Stationary Data
+aic5.wge(hadley,p=0:6,q=0:1)             # aic5 pics AR(3,1)
+had.est=est.arma.wge(hadley,p=3,q=1)
+
+# Check for white resids
+plotts.sample.wge(had.est$res,arlimits = T)
+ljung.wge(had.est$res,p=3,q=1)
+ljung.wge(had.est$res,p=3,q=1,K=48)
+
+fore.stat=fore.arma.wge(hadley,phi=had.est$phi,theta=had.est$theta,n.ahead=50,limits=F)
+ASE.AR31 = mean(hadley[160-30+1]:160-fore.stat$f)^2
+ASE.AR31
+```
+
+```{r Global Temp Modeled as Non-Stationary}
+data(hadley)
+mean(hadley)
+plotts.sample.wge(hadley)
+
+# wandering seen, check with Dickey-Fuller
+adf.test(hadley)
+
+# Model as Non-Stationary Data
+est.ar.wge(d1.temp,p=14,type='burg')      # overfit
+d1.temp=artrans.wge(hadley,phi.tr=1)      # diff (1-B)
+plotts.sample.wge(d1.temp,arlimits=T)     # view ACF with CIs
+
+aic5.wge(d1.temp,p=0:6,q=0:4)             # aic5 pics AR(3,1)
+d1.temp.est=est.arma.wge(d1.temp,p=1,q=3)
+d1.temp.est
+
+# Check for white resids
+plotts.sample.wge(d1.temp.est$res,arlimits = T)
+ljung.wge(d1.temp.est$res,p=3,q=1)
+ljung.wge(d1.temp.est$res,p=3,q=1,K=48)
+
+fore1=fore.aruma.wge(hadley,d1.temp.est$phi,d1.temp.est$theta,n.ahead=20,limits=F)
+ASE.AR113 = mean(hadley[160-30+1]:160-fore1$f)^2
+ASE.AR113
+
+# let's compare to the AR(2,1)
+d1.temp.est2=est.arma.wge(d1.temp,p=2,q=1)
+fore2=fore.aruma.wge(hadley,d1.temp.est2$phi,d1.temp.est2$theta,n.ahead=20,limits=F)
+ASE.AR211 = mean(hadley[160-30+1]:160-fore2$f)^2
+ASE.AR211
+
+ASE.AR211
+ASE.AR31
+ASE.AR113
+```
+
+```{r Global Temp Modeled as Signla Plus Noise}
+data(hadley)
+
+# 1. fit the model and get the residuals
+x=hadley
+n=length(x) 
+t=1:n
+d=lm(x~t) # x = data, t = time
+d
+
+# find residuals = Xintercept - Slope * t
+x.z=x-d$coefficients[1]-d$coefficients[2]*t   # residuals still show a little wandering, serial correlation
+
+# 2. fit an AR(p) model to get the phi's from the residuals to find the yhat-t=transformed data
+ar.z=aic.wge(x.z,p=0:6)
+ar.z                                         # ar.z$p is the order p (aic selects p=4)
+y.trans=artrans.wge(hadley,phi.tr=ar.z$phi)  # y.trans is the original data transformed using the phi's from ar.z
+                                             # looks stationary, similar to white noise
+# 3. transform time, the explanatory variable using the Phi's from the AR4 model
+#    this is the essence of the Cochran-Orcut method
+t.trans=artrans.wge(t,phi.tr=ar.z$phi)
+
+# 4. regress on y using t, the AR4 and time on each other
+fitco = lm(y.trans~t.trans)
+summary(fit)
+
+# 5. review residuals for white noise
+plotts.wge(fitco$residuals)
+acf(fitco$residuals)
+ljung.wge(fitco$residuals)
+
+d      # slope and intercept
+ar.z$p # Phi's for final signal + noise model
+
+# 6. plot the model to compare vs the actual
+gen.sigplusnoise.wge(160,b0=-.5257,b1=.0044,phi=ar.z$phi, vara=.0103)
+
+# 7. forecast 
+
+fore.sigplusnoise.wge(hadley,max.p=4,n.ahead=50,limits=F)
+
+
+```
+
+```{r Sunspot Data-Box Jenkins Model AR2}
+data("sunspot.classic")
+plotts.sample.wge(sunspot.classic)
+
+# ACF & PACF
+acf(sunspot.classic)
+pacf(sunspot.classic)
+
+# Est AR(2) parameters
+s2=est.ar.wge(sunspot.classic,p=2)
+mean(sunspot.classic)
+s2$avar
+
+ljung.wge(s2$res)
+ljung.wge(s2$res,K=48)
+
+
+
+```
+
+```{r Sunspot Data-AIc Model AR8}
+data("sunspot.classic")
+plotts.wge(sunspot.classic)
+
+aic5.wge(sunspot.classic,p=0:10,q=0:0) # assume AR model, pics AR(8)
+
+s8=est.ar.wge(sunspot.classic,p=8)
+factor.wge(phi=s8$phi)
+
+mean(sunspot.classic)
+s8$avar
+
+ljung.wge(s2$res)
+ljung.wge(s2$res,K=48)
+
+```
+
+```{r Sunspot Pre-Live}
+newSunspot <- read.csv("SN_y_tot_V2.0.csv")
+newSunspot <- na.omit(newSunspot)
+names(newSunspot) <- c("Year","Sunspot","MeanStdDev","ObsUsed","Marker") # rename table columns
+sun = newSunspot$Sunspot
+
+# Plot the data
+plotts.sample.wge(sun)
+
+# search/select a model 
+aic5.wge(sun,p=0:15,q=0:3,type='bic') # bic select AR(6,2)
+
+# fit the model
+est.sun=est.arma.wge(sun,p=6,q=2)
+est.sun
+
+# forecast the model
+fore.sun=fore.arma.wge(s,phi=est.sun$phi,theta=est.sun$theta,n.ahead=10,lastn=F,limits=F)
+ASE.AR62 = mean(s[318-30+1]:318-fore.sun$f)^2
+ASE.AR62
+
+# forecast the model
+fore.sun2=fore.aruma.wge(s,s=6,phi=est.sun$phi,theta=est.sun$theta,n.ahead=15,lastn=T,limits=F)
+ASE.AR = mean(s[318-20+1]:318-fore.sun2$f)^2
+ASE.AR
+
+
+# Check mod1 for white noise resids
+plotts.sample.wge(est.sun$res,arlimits = T)
+ljung.wge(est.sun$res,p=3,q=1)
+ljung.wge(est.sun$res,p=3,q=1,K=48)
+
+# Check mod2 for white noise resids
+plotts.sample.wge(est.sun2$res,arlimits = T)
+ljung.wge(est.sun2$res,p=3,q=1)
+ljung.wge(est.sun2$res,p=3,q=1,K=48)
+
+# Generate data from the models
+x1=gen.aruma.wge(n=300,phi=est.sun$phi,theta=est.sun$theta,d=0,vara=1)
+x2=gen.aruma.wge(n=300,phi=est.sun$phi,theta=est.sun$theta,d=0,s=6,vara=1)
+
+# Plot the generated data
+plotts.sample.wge(x1)
+plotts.sample.wge(x2)
+
+```
+
+```{r Accuspike PreLive}
+accuspike <- read.csv("accuspike.csv")
+accuspike <- na.omit(accuspike)
+names(accuspike) <- c("date","users") # rename table columns
+
+# Plot the data
+plotts.sample.wge(accuspike$users)
+# minus the ending the realization appears stationary
+# acfs damp with an oscillating nature, 
+# some wandering behavior seen in parzen along with a some frequencies at .14, .28, .415, and .5
+
+# check AIC suggestion
+aic5.wge(dif2,p=0:13,q=0:3,type='bic')
+# BIC selects AR(8)
+
+# let's overfit, to see the factors
+overfit=est.arma.wge(accuspike$users,p=12)
+# seasonality seen somewhat close to (1-B^12), but not close enough
+# closest root to 1 has an abs recip = .967, let's continue with AR(8)
+
+# fit the model
+est.spike=est.arma.wge(accuspike$users,p=8)
+
+# $avar is kinda high
+mean(accuspike$users)
+est.spike$avar
+
+# check for white noise
+# check 1
+plotts.sample.wge(est.spike$res,arlimits = T)
+# check 2
+ljung.wge(est.spike$res)
+ljung.wge(est.spike$res,K=48)
+# white noise on residuals check out
+
+# forecast the model
+fore.spike=fore.arma.wge(accuspike$users,phi=est.spike$phi,n.ahead=20,lastn=T,limits=F)
+fore.spike
+ASE.spike = mean(accuspike$date[192-30+1]:192-fore.spike$f)^2
+ASE.spike
+
+# Check the model by generating data from the model
+gen.aruma.wge(n=200,phi=est.spike$phi,d=0,vara=1)
+# kinda represents the original realization
+
+```
+
+
+
+```{r Accuspike PreLive-Remove Factor Closest to 1}
+accuspike <- read.csv("accuspike.csv")
+accuspike <- na.omit(accuspike)
+names(accuspike) <- c("date","users") # rename table columns
+
+# Plot the data
+plotts.sample.wge(accuspike$users)
+# minus the ending the realization appears stationary
+# acfs damp with an oscillating nature, 
+# some wandering behavior seen in parzen along with a some frequencies at .14, .28, .415, and .5
+
+# let's overfit, to see the factors
+overfit=est.arma.wge(accuspike$users,p=12)
+# seasonality seen somewhat close to (1-B^12), but not close enough
+# closest root to 1 has an abs recip = .967, let's continue with AR(8)
+
+# now let's diff the factor closest to 1
+dif.spike=artrans.wge(accuspike$users, phi.tr=1)
+acf(dif.spike)
+dif2.spike=artrans.wge(dif.spike,phi.tr=1)
+acf(dif2.spike)
+
+# fit the model
+est.spike=est.arma.wge(dif2.spike,p=2)
+
+# $avar is kinda high
+mean(accuspike$users)
+est.spike$avar
+
+# check for white noise
+# check 1
+plotts.sample.wge(est.spike$res,arlimits = T)
+# check 2
+ljung.wge(est.spike$res)
+ljung.wge(est.spike$res,K=48)
+# white noise on residuals check out
+
+# forecast the model
+fore.spike=fore.arma.wge(accuspike$users,phi=est.spike$phi,n.ahead=20,lastn=T,limits=F)
+fore.spike
+ASE.spike = mean(accuspike$date[192-30+1]:192-fore.spike$f)^2
+ASE.spike
+
+# Check the model by generating data from the model
+gen.aruma.wge(n=200,phi=est.spike$phi,d=0,vara=1)
+# kinda represents the original realization
+
+```
+
+

@@ -1,0 +1,435 @@
+---
+title: "NonStationary Model ID"
+author: "Steve Bramhall"
+date: "July 2, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+library(tseries)
+library(orcutt) # for sig + noise
+```
+
+```{r BLT 10.2.2}
+data("dowjones2014")
+aic.wge(dowjones2014,p=0:5,q=0:2)
+
+# An AR(1) is selectd with a phi1 hat = .9816
+# (1-.9816B)(Xt-16778)=at
+# So should this be modeled at stationary or non-stationary?
+# Historically stock market increases so it does not tend to have an 
+# attraction to a mean. Therefore, we model this as non-stationary.
+```
+
+```{r BLT 10.3.2}
+# (1-B)(1-1.2B+.8B^2)Xt =at
+#--- MODEL AS A NON-STATIONARY MODEL ---
+x=gen.arima.wge(200,phi=c(1.2,-.8),d=1,sn=56)
+plotts.sample.wge(x)                      # (1) view data, autocorrelations
+xd1.dif=artrans.wge(x,phi.tr=1)           # (2a) diff data
+xd1.dif                                   # (2b) plott of diference of data
+aic5.wge(xd1.dif,p=0:5,q=0:2)             # (3)  Find the model via AIC
+# aic picks AR(2)
+est.ar.wge(xd1.dif,p=2)                   # phi1=1.265,phi2=-.80224
+# $avar [1] 0.9293244
+mean(x)                                   # mean = 21.22
+# Final non-stationary model: (1-B)(1-1.27B+.8B^2)(Xt+21.22)=at, sigma hat squared = .93
+
+#--- MODEL AS A STATIONARY MODEL ---
+# generate ARIMA(2,1,0)
+x=gen.arima.wge(200,phi=c(1.2,-.8),d=1,sn=56)
+# Assume it will eventually make it back to a fixed process mean.
+aic5.wge(x)                               # Find the model via AIC, no dif
+# aic picks AR(4)
+xest=est.arma.wge(x,p=4,q=0)                   
+# phis; 2.3546329, -2.2920782, 1.0456011, -0.1101713
+# avar: 0.9295115
+mean(x)                                   # mean = 21.22
+# Final stationary model: (1-2.35B+2.29B^2-1.05B^3=.11B^4)(Xt+21.22)=at, sigma hat squared=.9295
+# let's forecast this model
+fore.aruma.wge(x,d=1,phi=c(1.27,-.8),n.ahead=50)
+```
+
+```{r BLT 10.3.7 Box-Jenkins}
+bond <- read.csv("10_year_bond_rate_2010-2015.csv")
+plotts.sample.wge(bond$Close)                 # wandering, slow damp ACF
+bond.dif1=artrans.wge(bond$Close,phi.tr = 1)  # diff
+aic5.wge(bond.dif1)                           # aic of dif, wnin top 5
+aic5.wge(bond$Close)                          # aic of stationary, AR1 favored
+```
+
+```{r BLT 10.4.1 Two Unit Roots}
+# ARIMA(2,2,0), (1-B)^2(1-1.2B+.6B^2)Xt = at
+x=gen.arima.wge(n=200,d=2,phi=c(1.2,-.6),sn=132)
+dif1=artrans.wge(x,phi.tr=1)
+dif2=artrans.wge(dif1,phi.tr=1)
+# now we can model it
+aic5.wge(dif2,p=2)
+# AIC5 picks (AR2)
+xest=est.ar.wge(dif2,p=2)
+paste("Estimated Model's Phi's=",xest$phi)
+paste("variance=",xest$avar)
+paste("mean=",mean(x))
+# So the final model is (1-B)^2(1-1.272B+.683B^2)(Xt-1511.92)=at, var=1.03
+# let's forecast this model
+fore.aruma.wge(x,d=2,phi=c(1.27,-.68),n.ahead=50)
+```
+
+```{r BLT 10.6.1 Dow Jones Data}
+data("dowjones2014")
+dow=dowjones2014
+plotts.sample.wge(dow)      # plot to check for white noise
+dif1=artrans.wge(dow,1)     # difference the data due to wandering
+acf(dif1)                   # check dif data for white noise
+# looks like white noise but let's finish the steps
+
+aic5.wge(dif1,p=0:5,q=0:2) # find the model
+# AIC5 picks AR(4,1), so we est with that but note white noise is seen
+
+xest=est.arma.wge(dif1,p=4,q=1)  # produce the model
+paste("Estimated Model's Phi's=",xest$phi)
+paste("Theta=",xest$theta)
+paste("variance=",xest$avar)
+paste("mean=",mean(dow))
+
+# now let's check the factors
+factor.wge(phi=xest$phi)
+# theta is barely under 1 so it's barely invertible
+# (1-.85B) and (1-.68B) will work to cancel out the MA theta factor
+
+# let's look at the BIC
+aic5.wge(dif1,p=0:5,q=0:2,type='bic')
+# BIC selects white noise
+
+var_whtnoise=sd(dif1)^2
+paste("The variance of the white noise =",var_whtnoise)
+```
+
+```{r BLT 10.6.2 Model Matching Concept Check}
+#A (1-B)(1-.3B+.8B^2)Xt=at
+x=gen.arima.wge(n=200,d=1,phi=c(.3,-.8))
+x1dif=artrans.wge(x,1)
+acf(x1dif)
+aic5.wge(x1dif)
+aic5.wge(x1dif,type='bic')
+xest=est.arma.wge(x1dif,p=2,q=0)  # produce the model
+paste("Estimated Model's Phi's=",xest$phi)
+paste("Theta=",xest$theta)
+paste("variance=",xest$avar)
+paste("mean=",mean(dow))
+fore.arma.wge(x,phi=xest$phi,n.ahead=20)
+
+```
+
+```{r BLT 10.6.2 Model Matching Concept Check}
+#B (1-B)^2(1-.3B+.8B^2)Xt=at
+x2=gen.arima.wge(n=200,d=2,phi=c(.3,-.8))
+x2dif=artrans.wge(x2,1)
+x2dif2=artrans.wge(x2dif,1)
+aic5.wge(x2dif2)
+aic5.wge(x2dif2,type='bic')
+xest=est.arma.wge(x2dif2,p=2,q=0)  # produce the model
+paste("Estimated Model's Phi's=",xest$phi)
+paste("Theta=",xest$theta)
+paste("variance=",xest$avar)
+paste("mean=",mean(dow))
+fore.aruma.wge(x2,d=1,phi=xest$phi,theta=xest$theta,n.ahead=20)
+
+#C (1-.3B+.8B^2)Xt=at
+x3=gen.arma.wge(n=200,phi=c(.3,-.8))
+plotts.sample.wge(x3)
+aic5.wge(x3)
+aic5.wge(x3,type='bic')
+xest=est.arma.wge(x3,p=2,q=0)  # produce the model
+paste("Estimated Model's Phi's=",xest$phi)
+paste("Theta=",xest$theta)
+paste("variance=",xest$avar)
+paste("mean=",mean(dow))
+fore.arma.wge(x3,xest$phi,xest$theta,n.ahead=10)
+
+#D (1-.3B)Xt=at
+x4=gen.arima.wge(n=200,d=1)
+x4dif=artrans.wge(x4,1)
+
+
+fore.aruma.wge(x,d=2,phi=c(1.27,-.68),n.ahead=50)
+
+```
+
+```{r BLT10.7 Overfitting-Factor Tables}
+# ARIMA(2,1,0), (1-B)^2(1-1.2B+.6B^2)Xt = at
+x=gen.arima.wge(n=200,d=1,phi=c(1.2,-.8),sn=56)
+
+# overfit with AR and AR8 and look for (1-B factors)
+est.ar.wge(x,p=6,type='burg')
+est.ar.wge(x,p=8,type='burg')
+
+bond <- read.csv("10_year_bond_rate_2010-2015.csv")
+x=bond$Close
+est.ar.wge(x,p=6,type='burg')
+est.ar.wge(x,p=8,type='burg')
+
+# 2 unit roots
+x=gen.arima.wge(n=200,d=2,phi=c(1.2,-.6),sn=132)
+est.ar.wge(x,p=8,type='burg')
+est.ar.wge(x,p=10,type='burg')
+
+
+```
+
+```{r BLT10.7 Concept Check}
+
+data <- read.csv("zero_one_or_tworootsofone.csv")
+x=data$x
+plotts.sample.wge(x)
+dif1=artrans.wge(x,1)
+dif2=artrans.wge(dif1,1)
+
+est.ar.wge(x,p=10,type='burg')
+```
+
+```{r BLT10.8 Dickey-Fuller Test}
+x=gen.arma.wge(200,phi=c(.9),sn=5)
+adf.test(x)
+
+for (i in 1:10){
+x=gen.arma.wge(200,phi=c(.9))
+res=adf.test(x)
+print(res)
+}
+```
+
+```{r BLT 10.9.4}
+air <- read.csv("SWADelay.csv")
+x=air$arr_delay
+#plotts.sample.wge(x)
+d15=est.ar.wge(x,p=15,type='burg')
+```
+
+```{r BLT 10.10.3}
+air <- read.csv("SWADelay.csv")
+x=air$arr_delay
+d1=artrans.wge(x,phi.tr=1)                   # remove trend
+d1.12=artrans.wge(d1,phi.tr=c(rep(0,11),1))  # remove annual seasonality
+airest=est.ar.wge(d1.12,p=15,type='burg')    # overfit
+airest
+psi.weights.wge(phi=airest$phi,lag.max=5)    # get psi weights
+
+```
+
+
+```{r}
+data(patemp)                                # PA temp data
+plotts.sample.wge(patemp)
+est.ar.wge(patemp,p=14,type='burg')         # overfit 1
+est.ar.wge(patemp,p=15,type='burg')         # overfit 2
+y.tr=artrans.wge(patemp,phi.tr=c(1.732,-1)) 
+```
+
+```{r BLT10.12 Signal Plus Noise}
+x=gen.sigplusnoise.wge(100,b0=0,b1=0,phi=.99)
+t=seq(1,100,1)
+df=data.frame(x=x,t=t)
+fit=lm(x~t,data=df)
+summary(fit)
+
+
+
+```
+
+```{r BLT 10.13 Cochrane-Orcut Test for Sig+Noise}
+x = gen.sigplusnoise.wge(100,b0=0,b1=0,phi=.95,sn=21)
+t = seq(1,100,1)
+df = data.frame(x=x,t=t)
+fit = lm(x~t, data=df)
+summary(fit)
+
+cfit = cochrane.orcutt(fit)        # makes less type 1 errors
+summary(cfit)
+
+```
+
+```{r BLT10.13 Sig+Noise}
+air <- read.csv("SWADelay.csv")
+x=air$arr_delay
+t=1:177                      # create an index
+df = data.frame(x=x,t=t)
+#linreg=lm(x ~ t, data=df)    # fit a linear model, get slope and intercept
+#linreg                       # show slope and intercpet
+#linreg.res=resid(linreg)     # get residuals
+#plot(linreg.res,type="l")    # plot residuals
+#plotts.sample.wge(linreg.res)# sample autocorrelations of residuals
+#plotts.sample.wge(hadley)    # sample autocorrelations of original data
+
+
+fit = lm(x~t, data=df)
+summary(fit)
+
+cfit = cochrane.orcutt(fit)        # makes less type 1 errors
+summary(cfit)
+```
+
+
+Print seasonal factor tables
+```{r Seasonal Factor Tables}
+#biannual
+factor.wge(c(0,1))
+
+#monthly
+factor.wge(c(rep(0,11),1))
+
+#quarterly
+factor.wge(c(0,0,0,1))
+```
+
+
+
+
+```{r Pre-Live Freight Data}
+
+data(freight)
+
+# ARIMA Analysis
+#----------------
+
+# Check the realization and ACFs
+#  -wandering and seasonality seen, no white noise
+plotts.sample.wge(freight)            
+
+# Let's overfit with p=10 & chk the factor table
+#  -(1-B) term seen, no matches for seasonality
+est.ar.wge(freight,p=10,type='burg')    
+
+# (1-B) term seen in factor table, perform (1-B) diff
+#  -not quite white noise but looks stationary
+dif=artrans.wge(freight, phi.tr=1)    
+
+# check AIC/BIC
+#  -both pick AR(10,1)
+aic5.wge(dif,p=0:10,q=0:2)            
+aic5.wge(dif,p=0:10,q=0:2,type='bic') 
+
+# produce the model
+fest=est.arma.wge(dif,p=10,q=1)       
+fest
+paste("Estimated Model's Phi's=",fest$phi)
+paste("Estimated Model's Theta's=",fest$theta)
+paste("variance=",fest$avar)
+paste("mean=",mean(freight))
+
+# check factor table for any reductions/exansions
+factor.wge(phi=fest$phi)
+
+# let's forecast this model
+fore.arma.wge(freight,phi=fest$phi,theta=fest$theta,n.ahead=50)
+ffore.arima=fore.arma.wge(freight,phi=fest$phi,theta=fest$theta,n.ahead=50,lastn=T)
+
+# Get ASE
+ASE.arima = mean((freight[(120-10+1):120]-ffore.arima$f)^2)                  
+ASE.arima
+
+# Seasonal Analysis
+# Based on above, no seasonal analysis required
+
+# Sig+Noise Analysis w/ Cochrane-Orcutt
+#----------------------------------------
+t=1:120                        # create an index
+df = data.frame(x=freight,t=t) # create a data frame
+fit = lm(x~t, data=df)         # lm fit
+summary(fit)
+
+cfit = cochrane.orcutt(fit)    # cochrane-orcut fit, makes less type 1 errors
+summary(cfit)
+
+fore.l = fore.sigplusnoise.wge(freight,linear=T,n.ahead=20,lastn=T)
+ASE.lin = mean((freight[(120-10+1):120]-fore.l$f)^2)   
+ASE.lin
+```
+
+```{r Pre-Live Propane Data}
+propane <- read.csv("WeeklyPropanePricesPerGallon.csv")
+propane <- na.omit(propane)
+names(propane) <- c("Date","Price") # rename table columns
+
+# ARIMA Analysis
+#----------------
+
+# Check the realization and ACFs
+#  -wandering and seasonality seen, no white noise
+plotts.sample.wge(propane$Price)            
+
+# Let's overfit with p=10 & chk the factor table
+#  -(1-B) term seen, no matches for seasonality
+est.ar.wge(propane$Price,p=10,type='burg')    
+
+# (1-B) term seen in factor table, perform (1-B) diff
+#  -not quite white noise but looks stationary
+dif=artrans.wge(propane$Price, phi.tr=1)    
+acf(dif)
+
+# check AIC/BIC
+#  -both pick AR(10,1)
+aic5.wge(dif,p=0:10,q=0:2)            
+aic5.wge(dif,p=0:10,q=0:2,type='bic') 
+
+# produce the model
+fest=est.arma.wge(dif,p=3,q=2)       
+fest
+paste("Estimated Model's Phi's=",fest$phi)
+paste("Estimated Model's Theta's=",fest$theta)
+paste("variance=",fest$avar)
+paste("mean=",mean(propane$Price))
+
+# check factor table for any reductions/exansions
+factor.wge(phi=fest$phi)
+
+# let's forecast this model
+fore.arma.wge(propane$Price,phi=fest$phi,theta=fest$theta,n.ahead=50)
+ffore.arima=fore.arma.wge(propane$Price,phi=fest$phi,theta=fest$theta,n.ahead=50,lastn=T)
+
+# Get ASE
+ASE.arima = mean((propane$Price[(120-10+1):120]-ffore.arima$f)^2)                  
+ASE.arima
+# Seasonal Analysis
+
+# Sig+Noise Analysis w/ Cochrane-Orcutt
+#----------------------------------------
+t=1:1400                             # create an index
+df = data.frame(x=propane$Price,t=t) # create a data frame
+fit = lm(x~t, data=df)               # lm fit
+summary(fit)
+
+cfit = cochrane.orcutt(fit)    # cochrane-orcut fit, makes less type 1 errors
+summary(cfit)
+
+fore.l = fore.sigplusnoise.wge(propane$Price,linear=T,n.ahead=20,lastn=F)
+ASE.lin = mean((propane$Price[(1400-10+1):1400]-fore.l$f)^2)   
+ASE.lin
+
+
+```
+
+```{r LIVE SESSION investigate sig+noise}
+data(patemp)
+
+t=1:180                             # create an index
+df = data.frame(x=patemp,t=t) # create a data frame
+fit = lm(x~t, data=df)               # lm fit
+summary(fit)
+
+cfit = cochrane.orcutt(fit)    # cochrane-orcut fit, makes less type 1 errors
+summary(cfit)
+
+fore.l = fore.sigplusnoise.wge(patemp,linear=T,n.ahead=20,lastn=F)
+ASE.lin = mean((patemp[(180-10+1):180]-fore.l$f)^2)   
+ASE.lin
+
+plotts.sample.wge(patemp)
+fore.l = fore.sigplusnoise.wge(patemp,linear=T,freq=.083, max.p=12,n.ahead=20,lastn=T)
+fore.l.patemp.$b
+```
+
+
+

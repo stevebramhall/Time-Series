@@ -112,14 +112,11 @@ a = gen.arima.wge(500,phi=c(.6,-.8),theta=-.3,d=2,vara=1,sn=37)
 ar=mult.wge(fac1=c(.6,-.8),fac2=1,fac3=1)
 factor.wge(ar$model.coef)
 
-
 a = gen.arima.wge(500,phi=c(.6,-.8),theta=-.3,d=2,var=1,sn=37)
 FirstDif=artrans.wge(a,1) # take out the (1-B)
 SecondDif=artrans.wge(FirstDif,1) # take out the 2nd (1-B)
 parzen.wge(SecondDif)
-aic5.wge(SecondDif) # check the structure of the noise
-
-
+aic5.wge(SecondDif) # check the structure of the noise = residuals
 ```
 
 ```{r}
@@ -132,9 +129,7 @@ plotts.true.wge(phi=c(.6,-.8),theta=-.3)
 p=parzen.wge(a,trunc=40)
 ar=mult.wge(fac1=c(1.5,-.8),fac2=1,fac3=1)
 factor.wge(ar$model.coef)
-
 FirstDif=artrans.wge(a,1) # take out the (1-B)
-SecondDif=artrans.wge(FirstDif,1) # take out the 2nd (1-B)
 parzen.wge(SecondDif)
 aic5.wge(SecondDif) # check the structure of the noise
 ```

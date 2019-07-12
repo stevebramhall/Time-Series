@@ -1,0 +1,284 @@
+---
+title: "Stationary Model ID"
+author: "Steve Bramhall"
+date: "June 30, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+```
+
+```{r MLE for ARMA(2,1)}
+# (1-1.6B+.8B^2)(Xt-50)=(1-.8B)at, var=5
+arma21=gen.arma.wge(n=100,phi=c(1.6,-.8),theta=.8,vara=5,sn=55)
+arma21=arma21+50                  # adjust mean to 50 from 0
+est.arma.wge(arma21,p=2,q=1)
+mean(arma21)
+```
+
+```{r MLE for AR(4)}
+# (1+.7B^2-.1B^3+.72B^4)(Xt-20)=at, var=10
+ar40=gen.arma.wge(n=100,phi=c(0,-.7,.1,-.72),vara=10,sn=72)
+ar40=ar40+20           # adjust mean to 20 from 0
+est.ar.wge(ar40,p=4)   # NOTE est.ar
+mean(ar40)
+```
+
+```{r MLE, BLT9.3.3}
+# (1-.3B+.7B^2)(Xt - 37)=(1+.4B)at, variance = 4
+arma21=gen.arma.wge(n=200,phi=c(.3,-.7),theta=-.4,vara=4,sn=27)
+arma21=arma21+37      # adjust mean to 37 from 0
+arma21_est=est.arma.wge(arma21,p=2,q=1)
+paste("mean=",mean(arma21))
+paste("phi=",arma21_est$phi)
+paste("theta=",arma21_est$theta)
+paste("variance=",arma21_est$avar)
+# --> (1-.312B +.691B^2)(Xt-37.17)=(1+.535)at, variance = 4.65
+```
+
+```{r BLT9.5.6 Model Comparison}
+# (1-1.6B+.9B^2)Xt =at
+x=gen.arma.wge(n=200,phi=c(1.6,-.9),vara=2,sn=33)
+plotts.wge(x) # show data pts on realization
+
+# Yule Waler Estimates
+x.yw=est.ar.wge(x,p=2,type='yw')
+x.yw
+
+# Burg Estimates
+x.burg=est.ar.wge(x,p=2,type='burg')
+x.burg
+
+# MLE Estimates
+x.mle=est.ar.wge(x,p=2,type='mle')
+x.mle
+
+# ACFs and Spectral Density
+plotts.sample.wge(x)
+
+# compare variances
+x.yw$avar
+x.burg$avar
+x.mle$avar
+
+# compare AICs
+x.yw$aic
+x.burg$aic
+x.mle$aic
+
+# compare AICCs
+x.yw$aicc
+x.burg$aicc
+x.mle$aicc
+
+# compare BICs
+x.yw$bic
+x.burg$bic
+x.mle$bic
+
+```
+
+```{r BLT9.5.8 Burg Estimate AR2}
+# (1-.3B+.7B^2)(Xt - 37)=at, variance = 4
+ar2=gen.arma.wge(n=200,phi=c(.3,-.7),vara=4,sn=27)
+ar2=ar2+37
+ar2_burg=est.ar.wge(ar2,p=2,type='burg')
+paste("mean=",mean(ar2))
+paste("phi=",ar2_burg$phi)
+paste("theta=",ar2_burg$theta)
+paste("variance=",ar2_burg$avar)
+
+```
+
+
+```{r BLT9.7 White Noise Check}
+wn1 <- read.csv("maybewhitenoise1.csv")
+wn1 <- na.omit(wn1)
+names(wn1) <- c("x","y") # rename table columns
+plotts.wge(wn1$y)
+acf(wn1$y)
+
+wn2 <- read.csv("maybewhitenoise2.csv")
+wn2 <- na.omit(wn2)
+names(wn2) <- c("x","y") # rename table columns
+plotts.wge(wn2$y)
+acf(wn2$y)
+```
+
+```{r BLT9.9 AIC}
+#(1-.967B)(Xt-2.2)=(1+.477)at, var=.0139
+x=gen.arma.wge(n=100,phi=.967,theta=-.477,vara=.0139)
+x=x+2.2
+est.arma.wge(x,p=1,q=1)        # aic method 1
+aic.wge(x,p=1,q=1,type='aic')  # aic method 2
+aic5.wge(x)                    # aic method 3
+
+#(1-1.45B+.734B^2-.261B&=^3)(Xt-2.2)=at, var=.0137
+x=gen.arma.wge(n=100,phi=c(1.45,-.734,.261),vara=.0137)
+x=x+2.2
+est.arma.wge(x,p=3)            # aic method 1
+aic.wge(x,type='aic')          # aic method 2
+aic5.wge(x)                    # aic method 3
+```
+
+
+```{r BLT9.10 Model Selecting}
+# (1-2.3B+1.92B^2-.56B^3)(Xt-30)=(1+.8B)at, var=1
+x31=gen.arma.wge(n=75,phi=c(2.3,-1.92,.56),theta=-.88,sn=61)
+x31=x31+30
+plotts.sample.wge(x31)
+aic5.wge(x31,p=0:8,q=0:2)
+
+# let's pick ARMA(6,1) and look at the factor table
+est.arma.wge(x31,p=6,q=1)
+
+# let's look at the BIC for a reduced parameter model
+aic5.wge(x31,p=0:8,q=0:2,type='bic')
+
+# and let's look at the factor table
+est.arma.wge(x31,p=3,q=1)
+mean(x31)
+
+```
+
+
+```{r Box-Jenkins AR}
+inf <- read.csv("Inflation.csv")
+inf$DateIdx<-1:nrow(inf)                # add data index column
+names(inf) <- c("Year","Month","y","x") # rename table columns
+plotts.wge(inf$y)
+aic5.wge(inf$y)
+aic5.wge(inf$y,type='bic')
+pacf(inf$y)
+
+```
+
+```{r BLT 9.12 Box-Jenkins ARMA}
+boxjarma <- read.csv("armawhatpq1.csv")
+acf(boxjarma$x)
+pacf(boxjarma$x)
+aic5.wge(boxjarma$x)
+aic5.wge(boxjarma$x,type='bic')
+
+```
+
+```{r BLT 9.13 Put it all together}
+txgas <- read.csv("TexasGasPrice.csv")
+txgas$Idx<-1:nrow(txgas)                   # add data index column
+plotts.wge(txgas$Price)                    # view data, chk if wht noise
+aic5.wge(txgas$Price)                      # check AICs
+aic5.wge(txgas$Price,type='bic')           # check BICs
+est = est.arma.wge(txgas$Price,p=2,q=0)    # 
+fore.arma.wge(txgas$Price,phi=est$phi,n.ahead=31)
+```
+
+```{r 9.14 For Live Session}
+# MLE
+txgas <- read.csv("TexasGasPrice.csv")
+txgas$Idx<-1:nrow(txgas)                              # add data index column
+plotts.sample.wge(txgas$Price)                        # view data, chk if wht noise
+aic5.wge(txgas$Price)                                 # check AICs
+aic5.wge(txgas$Price,type='bic')                      # check BICs
+est.mle = est.ar.wge(txgas$Price,p=2,type='mle')      # fit AR(2), MLE
+
+forecast.mle = fore.arma.wge(txgas$Price,phi=est.mle$phi,n.ahead=24,lastn=T) # forecast w/ est phis
+ASE.mle = mean((txgas$Price[(205-24+1):205]-forecast.mle$f)^2)               # ASE calc
+paste("MLE ASE = ",ASE.mle)                                                  # print ASE
+
+# Burg Estimates
+est.burg=est.ar.wge(txgas$Price,p=2,type='burg')                                # fit AR(2), Burg
+forecast.burg = fore.arma.wge(txgas$Price,phi=est.burg$phi,n.ahead=24,lastn=T)  # forecast w/ est phis
+ASE.burg = mean((txgas$Price[(205-24+1):205]-forecast.burg$f)^2)                # ASE calc
+paste("Burg ASE = ",ASE.burg)                                                   # print ASE
+
+```
+
+```{r}
+fore.arma.wge(txgas$Price,phi=est.mle$phi,n.ahead=24,lastn=T)
+```
+
+```{r PACF}
+a = gen.arma.wge(100,phi=.9,sn=1)
+a
+p = pacf(a)
+p
+# want to know phi11 so fit an AR1
+est.ar.wge(a,p=1)
+est.ar.wge(a,p=1,type="yw") # it turns out pacf uses the Yule-Walker estimates to get the PACF
+
+# want to know phi22 so fit an AR2 and get the 2nd phi
+est.ar.wge(a,p=2)
+
+
+# Goal validate the PACF by gettting the corresponding AR estimates
+x <- read.csv("Unit9_2.csv")
+plotts.sample.wge(x$x)
+p = pacf(x$x)
+p
+
+ar1=est.ar.wge(x$x,p=1, type='yw')
+ar2=est.ar.wge(x$x,p=2, type='yw')
+ar3=est.ar.wge(x$x,p=3, type='yw')
+ar4=est.ar.wge(x$x,p=4, type='yw')
+ar5=est.ar.wge(x$x,p=5, type='yw')
+
+paste("phi hat 1 =",ar1$phi)
+paste("phi hat 2 =",ar2$phi[2])
+paste("phi hat 3 =",ar3$phi[3])
+paste("phi hat 4 =",ar4$phi[4])
+paste("phi hat 5 =",ar5$phi[5])
+
+
+# Check how CIs change if root is close to 1
+x=gen.arma.wge(n=75,phi=c(.99),sn=61)
+y=gen.arma.wge(n=75,phi=c(.1),sn=61)
+est=est.arma.wge(x,p=1,q=0)    # 
+fore.arma.wge(x,phi=est$phi,n.ahead=10)
+est2=est.arma.wge(y,p=1,q=0)    # 
+fore.arma.wge(y,phi=est2$phi,n.ahead=10)
+
+
+
+
+
+# MLE
+bo4 <- read.csv("Unit9_1.csv")
+plotts.sample.wge(bo4$x)                        # view data, chk if wht noise
+acf(bo4)
+aic5.wge(bo4$x,p=0:10,q=0:3)                    # check AICs
+aic5.wge(bo4$x,p=0:10,q=0:3,type='bic')         # check BICs
+
+est.mle = est.arma.wge(bo4$x,p=5,q=3)  # fit AR(2), MLE
+factor.wge(bo4$theta)
+forecast.mle = fore.arma.wge(bo4$x,phi=est.mle$phi,n.ahead=10,lastn=T) # forecast w/ est phis
+ASE.mle = mean((bo4$x[(100-10+1):100]-forecast.mle$f)^2)                     # ASE calc
+paste("MLE ASE = ",ASE.mle)                                                  # print ASE
+
+# Burg Estimates
+est.burg=est.ar.wge(bo4$x,p=5,q=3,type='burg')                               # fit AR(2), Burg
+forecast.burg = fore.arma.wge(bo4$x,phi=est.burg$phi,n.ahead=10,lastn=T)     # forecast w/ est phis
+ASE.burg = mean((txgas$Price[(100-10+1):100]-forecast.burg$f)^2)             # ASE calc
+paste("Burg ASE = ",ASE.burg)                                                # print ASE
+
+
+
+
+
+```
+
+
+```{r}
+data("LakeHuron")
+plotts.sample.wge(LakeHuron) 
+aic5.wge(LakeHuron,p=0:10,q=0:3)                    # check AICs
+aic5.wge(LakeHuron,p=0:10,q=0:3,type='bic')         # check BICs
+est.mle = est.arma.wge(LakeHuron,p=1,q=1)  # fit AR(2), MLE
+forecast.mle = fore.arma.wge(LakeHuron,phi=est.mle$phi,theta=est.mle$theta,n.ahead=10,lastn=T) 
+ASE.mle = mean((LakeHuron[(98-10+1):98]-forecast.mle$f)^2)                     # ASE calc
+paste("MLE ASE = ",ASE.mle)                                                  # print ASE
+
+
+```
+
