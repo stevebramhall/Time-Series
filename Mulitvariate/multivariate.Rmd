@@ -1,0 +1,271 @@
+---
+title: "Multivariate TS"
+author: "Steve Bramhall"
+date: "July 18, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+library(vars)
+```
+
+```{r BLT 12.2.3}
+BSales = read.csv("businesssales.csv", header=T)
+
+# mult regression fit
+ksfit=lm(sales~ad_tv+ad_online+discount,data=BSales)
+ksfit
+
+# check residuls for serial correlation
+aic.wge(ksfit$residuals,p=0:8,q=0) # AIC picks p=7
+
+# model residuals to get std errors
+fit = arima(BSales$sales,order=c(7,0,0),xreg=BSales[,3:5])
+fit
+
+# validate visually & with ljung-box test
+acf(fit$residuals)             # plotted residuals do not show up as white
+ltest = ljung.wge(fit$resid)
+ltest$pval                     # FTR the null that coefs are 0, so serially correlated
+
+# Add time trend to model (t)
+t=1:100
+ksfit=lm(sales~t+ad_tv+ad_online+discount,data=BSales) # fit
+aic.wge(ksfit$residuals,p=0:8,q=0:0) # AIC picks p=6   # chk resids
+fit=arima(BSales$sales,order=c(6,0,0),xreg=cbind(t,BSales[,3:5])) # model resids
+fit
+
+# time is significant (coef/SE > 2*SE) but not the other variables (coef/SE ~ 0)...still need to look for the most useful model
+
+acf(fit$resid)
+ltest = ljung.wge(fit$resid)
+ltest$pval                     # FTR the null that coefs are 0, so residuals are serially correlated
+```
+
+```{r BLT 12.2.4}
+# how to create lagged variables
+df = data.frame(Y = c(1,1,2,3,4,4,5,8),X1=c(5,6,6,7,7,8,8,9))
+X1_L1 = numeric(length(df$X1))
+X1_L1 = c(NA,df$X1[1:length(df$X1)-1]) # X1 lagged once
+X1_L2 = c(NA,NA,df$X1[(1:(length(df$X1)-2))]) # X1 lagged twice
+df$X1_L1 = X1_L1 # add new lag to the dataframe
+df$X1_L2 = X1_L2 # add new lag to the dataframe
+df
+```
+
+```{r BLT 12.3 Adding lagged variables}
+# add a lag1 for ad_tv and ad_online
+ad_tv1 = dplyr::lag(BSales$ad_tv,1)
+ad_online1 = dplyr::lag(BSales$ad_online,1)
+
+# assign discount
+discount = BSales$discount
+
+# add new lagged variables to BSales
+BSales$ad_tv1 = ad_tv1
+BSales$ad_online1 = ad_online1
+
+# perform a fit with lagged ad_tv and ad_online
+ksfit=lm(sales~ad_tv1+ad_online1+discount,data=BSales)
+ksfit
+
+# identify the order
+aic.wge(ksfit$residuals,p=0:8,q=0:0) # AIC picks p=7
+
+# fit the model
+fit=arima(BSales$sales,order=c(7,0,0),xreg=cbind(ad_tv1,ad_online1,discount))
+fit
+
+# Drop Discount and Add time trend.
+t=1:100
+# add time to model with lags
+ksfit=lm(sales~t+ad_tv1+ad_online1+discount,data=BSales)
+aic.wge(ksfit$residuals,p=0:8,q=0:0) # AIC picks p=7
+fit=arima(BSales$sales,order=c(7,0,0),xreg=cbind(t,ad_tv1,ad_online1,discount))
+fit
+# time, ad_tv1, ad_online1 are significant but discount not yet
+# AIC favors the model with time
+```
+
+```{r BLT 12.3.4 What is the lag}
+data = read.csv("whatisthelag.csv", header=T)
+ccf(data$Y,data$X1)
+```
+
+```{r BLT 12.4.3 Vector AR}
+x1.25=c(-1.03,0.11,-0.18,0.20,-0.99,-1.63,1.07,2.26,-0.49,-1.54,0.45,0.92,
+        -0.05,-1.18,0.90, 1.17,0.31,1.19,0.27,-0.09,0.23,-1.91,.46,3.61,-.03)
+x2.25=c(-.82,.54,1.13,-.24,-.77,.22,.46,-.03,-.59,.45,.59,.15,.6,.13,-.04,.12,-.96,.23,1.81,-.01,-.95,-.55,-.15,.71,.9)
+
+# setup train/test split
+x1=x1.25[1:20]
+x2=x2.25[1:20]
+
+plotts.wge(x1)
+plotts.wge(x2)
+
+#-- Univarite Analysis --
+
+# assume stationary and get the model
+p1=aic.wge(x1,p=0:8,q=0:0)
+p1 # aic picks p=2
+
+# forecast var1
+x1.est=est.ar.wge(x1,p=p1$p)
+fore.arma.wge(x1,phi=x1.est$phi,n.ahead=5,lastn=F,limits=F)
+
+p2=aic.wge(x2,p=0:8,q=0:0)
+p2 # aic picks p=2
+
+# forecast var2
+x2.est=est.ar.wge(x2,p=p2$p)
+fore.arma.wge(x2,phi=x2.est$phi,n.ahead=5,lastn=F,limits=F)
+
+#-- Multivariate Analysis --
+# VAR and VAR select are from CRAN package vars
+x=cbind(x1,x2) # combine the variables
+VARselect(x, lag.max = 6, type = "const", season = NULL, exogen = NULL)
+  # VARselect picks p=5 (using AIC)
+
+lsfit=VAR(x,p=5,type='const')
+lsfit
+preds=predict(lsfit,n.ahead=5)
+preds        # CIs are Margin of Errors 
+preds$fcst
+preds$fcst$x1
+
+# get the forecast for x1
+preds$fcst$x1[1:5,1] # get 1-5 from the 1st row
+
+a=ccf(x2.25,x1.25)
+a
+
+# fan chart using RColorBrewer
+fanchart(preds, colors=brewer.pal(n=8,name="Blues"))
+
+```
+
+```{r BLT 12.5.1 Melanoma and Sunspot Ex}
+melanoma=c(1,.9,.8,1.4,1.2,1,1.5,1.9,1.5,1.5,1.5,1.6,1.8,2.8,2.5,2.5,2.4,2.1,1.9,2.4,2.4,2.6,2.6,4.4,4.2,3.8,3.4,3.6,4.1,3.7,4.2,4.1,4.1,4,5.2,5.3,5.3)
+sunspot=c(40,115,100,80,60,40,23,10,10,25,75,145,130,130,80,65,20,10,5,10,60,190,180,175,120,50,35,20,10,15,30,60,105,105,105,80,65)
+
+# cross-correlation functions, lag 2 shows a possible serial correlation
+ccf(sunspot,melanoma,ylim=c(-1,1))
+
+# --- Univariate Regression ---
+mel.67=melanoma[1:32]
+sun.67=sunspot[1:32]
+
+# diagnose with AIC
+p.mel=aic.wge(mel.67,p=0:8,q=0:0)
+p.mel$p # diagnosed to be AR1
+
+# est coefficients/phis
+mel.est=est.ar.wge(mel.67,p=p.mel$p)
+# forecast
+fore.arma.wge(mel.67,phi=mel.est$phi,n.ahead=5,lastn=FALSE,limits=FALSE)
+  # as expected from an AR1, slowly damped to mean
+
+# diagnose with AIC
+p.sun=aic.wge(sun.67,p=0:8,q=0:0)
+p.sun$p
+
+# est coefficients/phis
+sun.est=est.ar.wge(sun.67,p=p.sun$p)
+# forecast
+fore.arma.wge(sun.67,phi=sun.est$phi,n.ahead=5,lastn=FALSE,limits=FALSE)
+
+# --- VAR & VARselect Multivariate ---
+# put variables together
+X=cbind(mel.67,sun.67)
+X
+# identify the lag k
+VARselect(X,lag.max=6,type="const",season=NULL,exogen=NULL) # AIC=5.04
+  # VARselect picks p=4 using AIC
+
+# estimate coefficients
+lsfit=VAR(X,p=4,type="const")
+lsfit
+
+# get predictions
+preds=predict(lsfit,n.ahead=5)
+preds
+
+# get forecast for melanoma data
+preds$fcst$mel.67[1:5,1]
+
+# plot data & add forecast to plot, execute next 2 line together
+plot(seq(1,37,1),melanoma,type="b",ylim=c(0,6))
+points(seq(33,37,1),preds$fcst$mel.67[1:5,1],type="b",pch=15)
+
+fanchart(preds)
+  # sunspots helps predict melanoma better than melanoma preditct sunspots
+
+
+# --- look at multiple regression with correlated errors ---
+t=1:37
+# fit melanoma to sunspots and time
+ksfit=lm(melanoma~sunspot+t)
+# look at the residuals
+phi=aic.wge(ksfit$residuals,p=0:8,q=0:0) # AIC picks p=2
+# pass to arima
+fit=arima(melanoma, order=c(phi$p,0,0),xreg=cbind(t,sunspot))
+fit
+  # sunspot are not that correlated but they weren't lagged like time
+
+summary(fit) # produces p-value
+
+# get forecast
+preds=predict(fit,newxreg=data.frame(t=c(33,34,35,36,37),sunspot[33:37]))
+# plot data & add forecast to plot, execute next 2 line together
+plot(seq(1,37,1),melanoma,type="b")
+points(seq(33,37,1),preds$pred,type="b",pch=15)
+
+
+# --- now lag the sunspot data ---
+t=1:35
+sun2=sunspot[1:35]
+mel2=c()
+for(i in 1:35) {mel2[i]=melanoma[i+2]}
+ksfit=lm(mel2~t+sun2)
+phi=aic.wge(ksfit$residuals,p=0:8,q=0:0) # AIC picks p=1
+fit=arima(mel2,order=c(phi$p,0,0),xreg=cbind(t,sun2))
+fit
+ # now we see sunspots are predictive of melanoma
+
+# get forecast
+preds=predict(fit,newxreg=data.frame(t=c(33,34,35,36,37),sunspot[33:37]))
+# plot data & add forecast to plot, execute next 2 line together
+plot(seq(1,37,1),melanoma,type="b")
+points(seq(33,37,1),preds$pred,type="b",pch=15)
+
+```
+
+```{r 12.5.5 is a cluster fuck}
+BSales = read.csv("businesssales.csv", header=T)
+
+# identify the lag k
+VARselect(BSales,lag.max=6,type="none",season=NULL,exogen=NULL) # AIC=5.04
+  # VARselect picks p=2 using AIC
+
+# estimate coefficients
+lsfit=VAR(BSales,p=1,type="none",ic=c("AIC"))
+lsfit
+serial.test(lsfit,lags.pt=24,type=c("PT.asmptotic"))
+
+lsfit2=VAR(BSales,p=2,type="trend")
+lsfit2
+
+ar(BSales,order.max=8,aic=TRUE)
+
+```
+
+```{r}
+data = read.csv("la_cmort_study.csv", header=T)
+
+# cross-correlation functions, lag 2 shows a possible serial correlation
+ccf(data$part,data$cmort,ylim=c(-1,1))
+```
+

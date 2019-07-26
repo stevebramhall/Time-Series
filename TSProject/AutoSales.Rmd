@@ -1,0 +1,37 @@
+---
+title: "TSProject-AutoSales"
+author: "Steve Bramhall"
+date: "July 26, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+library(nnfor)
+library(vars)
+```
+
+```{r}
+# read file
+data = read.csv(file='TSProject.csv',header=TRUE)
+data <- na.omit(data) # remove last row, has NA's
+names(data) <- c("Date","AutoSales","ConstSpend","UnempRate") # rename table columns
+
+# plot data
+plotts.sample.wge(data$AutoSales)
+plotts.sample.wge(data$ConstSpend)
+plotts.sample.wge(data$UnempRate)
+
+# We know the data is monthly so let's go ahead a remove that seasonality
+est.ar.wge(data$AutoSales,p=18,type='mle') # overfit    
+d1=artrans.wge(data$AutoSales,phi.tr=1)      # remove trend
+d1.12=artrans.wge(d1,phi.tr=c(rep(0,11),1))  # remove annual seasonality
+salesEst=est.ar.wge(d1.12,p=15,type='burg')  # overfit
+salesEst
+psi.weights.wge(phi=salesEst$phi,lag.max=5)  # get psi weights
+
+
+
+
+```

@@ -1,0 +1,416 @@
+---
+title: "Neural Networks"
+author: "Steve Bramhall"
+date: "July 23, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+library(nnfor)
+library(vars)
+```
+
+```{r}
+SWA = read.csv(file='swadelay.csv',header=TRUE)
+
+# train/test setup
+SWATrain = ts(SWA$arr_delay[1:141],start=c(2004,1),frequency=12)
+SWATest = ts(SWA$arr_delay[142:177],start=c(2015,10),frequency=12)
+
+# --Defaults w/ 50 networks -> 5 hidden nodes, optimal dif, optimal lags, determinate seasonal dummies--
+set.seed(2)
+fit.mlp=mlp(SWATrain,reps=50,comb="mean") # take mean of the 50 reps
+fit.mlp # we get the MSE and later we'll calc the ASE
+
+# Visualize the NN
+plot(fit.mlp) # grey = lagged vars, pink = seasonal vars
+
+# forecast
+fore.mlp = forecast(fit.mlp, h=36)
+plot(fore.mlp)
+
+# calc ASE
+ASE = mean((SWATest - fore.mlp$mean)^2)
+ASE
+
+# --fit another model, specify lags, no seasonality--
+fit.mlp=mlp(SWATrain,lags=c(1,2,3,4,5,6,7,8,9,10,11,12),allow.det.season = FALSE)
+set.seed(2)
+fit.mlp
+
+plot(fit.mlp)
+fore.mlp = forecast(fit.mlp,h=36)
+plot(fore.mlp)
+ASE = mean((SWATest - fore.mlp$mean)^2)
+ASE
+
+# --fit another, dif order = 12--
+fit.mlp=mlp(SWATrain,difforder=c(12),allow.det.season = FALSE)
+set.seed(2)
+fit.mlp
+
+plot(fit.mlp)
+fore.mlp = forecast(fit.mlp,h=36)
+plot(fore.mlp)
+ASE = mean((SWATest - fore.mlp$mean)^2)
+ASE
+
+
+# AR(12) Model
+f = fore.arma.wge(SWA$arr_delay,phi=c(.44,.02,-.12,.08,0,.02,.06,-.09,.06,.07,.02,.37),n.ahead=30,lastn=TRUE,limits=FALSE)
+ASE=mean((SWA$arr_delay[148:177]-f$f)^2)
+ASE
+
+# Seasonal Model, AR(13) with differencing 12,Factor Table suggested s=12
+SWA.12 = artrans.wge(SWA$arr_delay[1:141],c(rep(0,11),1))
+aic5.wge(SWA.12,p=0:15,q=0:2)
+  #AIC picks p=13
+AR13=est.arma.wge(SWA.12,p=13)
+f=fore.aruma.wge(SWA$arr_delay,phi=AR13$phi,s=13,n.ahead=36,lastn=TRUE)
+ASE = mean((SWA$arr_delay[142:177]-f$f)^2)
+ASE
+
+```
+
+```{r}
+set.seed(2)
+fit.mlp = mlp(SWATrain, difforder = c(1,6,12), allow.det.season = FALSE, reps = 100)
+fit.mlp
+
+fore.mlp = forecast(fit.mlp,h=36)
+ASE = mean((SWATest - fore.mlp$mean)^2)
+ASE
+```
+
+```{r BLT 13.4}
+data(airlog)
+
+# First 108 months in the Training Set
+set.seed(2)
+lairTrain = ts(airlog[1:108],frequency=12,start=c(1949,1)) # training data
+
+# Last 36 months in the Test Set
+lairTest = ts(airlog[109:144],frequency=12,start=c(1958,1)) # test data, 36 pts
+
+# fit the NN model
+fit.mlp=mlp(lairTrain)
+fit.mlp
+
+# plot NN
+plot(fit.mlp)
+
+# forecast
+fore.mlp=forecast(fit.mlp,h=36)
+
+# plot forecast
+plot(fore.mlp)
+
+# calc ASE
+ASE = mean((lairTest-fore.mlp$mean)^2)
+ASE
+
+#--- Try dif order = 12 ---
+# First 108 months in the Training Set
+set.seed(2)
+lairTrain = ts(airlog[1:108],frequency=12,start=c(1949,1)) # training data
+
+# Last 36 months in the Test Set
+lairTest = ts(airlog[109:144],frequency=12,start=c(1958,1)) # test data, 36 pts
+
+# fit the NN model
+fit.mlp=mlp(lairTrain,difforder=c(12)) # ADDED DIFFORDER
+fit.mlp
+
+# plot NN
+plot(fit.mlp)
+
+# forecast
+fore.mlp=forecast(fit.mlp,h=36)
+
+# plot forecast
+plot(fore.mlp)
+
+# calc ASE
+ASE = mean((lairTest-fore.mlp$mean)^2)
+ASE
+
+
+#--- Try dif order = 12 WITH CV ---
+# First 108 months in the Training Set
+set.seed(2)
+lairTrain = ts(airlog[1:108],frequency=12,start=c(1949,1)) # training data
+
+# Last 36 months in the Test Set
+lairTest = ts(airlog[109:144],frequency=12,start=c(1958,1)) # test data, 36 pts
+
+# fit the NN model
+fit.mlp=mlp(lairTrain,difforder=c(12),hd.auto.type = "cv") # ADDED DIFFORDER
+fit.mlp
+
+# plot NN
+plot(fit.mlp)
+
+# forecast
+fore.mlp=forecast(fit.mlp,h=36)
+
+# plot forecast
+plot(fore.mlp)
+
+# calc ASE
+ASE = mean((lairTest-fore.mlp$mean)^2)
+ASE
+
+```
+
+```{r BLT13.5 Multivariate}
+BSales = read.csv("businesssales.csv", header=T)
+tBS80 = ts(BSales$sales[1:80])
+set.seed(2)
+fit3 = mlp(tBS80)
+f = forecast(fit3, h=20)
+plot(BSales$sales[81:100],type="l")
+lines(seq(1,20),f$mean,col="blue")
+ASE = mean((BSales$sales[81:100]-f$mean)^2)
+ASE
+
+# -- Add additional Regressors --
+tBS80 = ts(BSales$sales[1:80])
+set.seed(2)
+tBSx = data.frame(ad_tv=ts(BSales$ad_tv),ad_online=ts(BSales$ad_online,frequency =7),discount=ts(BSales$discount))
+fit3 = mlp(tBS80,xreg=tBSx)
+f = forecast(fit3, h=20,xreg=tBSx)
+plot(BSales$sales[81:100],type="l")
+lines(seq(1,20),f$mean,col="blue")
+ASE = mean((BSales$sales[81:100]-f$mean)^2)
+ASE
+
+# -- Compare ARIMA Model with Regressors
+# add lags
+ad_tv1 = c(NA,BSales$ad_tv[1:(length(BSales$ad_tv)-1)])
+ad_online1 = c(NA,BSales$ad_online[1:(length(BSales$ad_online)-1)])
+BSales$ad_tv1=ad_tv1
+BSales$ad_online1=ad_online1
+
+# fit linear model with lagged regressors
+ksfit=lm(sales ~ ad_tv1 + ad_online1 + discount,data=BSales)
+aic.wge(ksfit$residuals,p=0:8,q=0:0) #AIC picks 7
+
+# fit arima model, order 7 with lagged variables
+fit=arima(BSales$sales,order=c(7,0,0),xreg=cbind(BSales$ad_tv1,BSales$ad_online1))
+
+# forecast
+preds=forecast(fit,h=20,xreg=cbind(BSales$ad_tv1[81:100],BSales$ad_online1[81:100],BSales$discount[81:100])) 
+plot(BSales$sales[81:100],type="l")
+lines(seq(1,20),preds$mean,col="blue")
+
+ASE=mean((BSales$sales[81:100]-preds$mean)^2)
+ASE
+
+# -- NN with 3Regressors --
+tBS80 = ts(BSales$sales[1:80])
+set.seed(2)
+tBSx = data.frame(ad_tv=ts(BSales$ad_tv),ad_online=ts(BSales$ad_online,frequency =7),discount=ts(BSales$discount))
+fit3 = mlp(tBS80,xreg=tBSx,hd.auto.type = "cv")
+fit3
+f = forecast(fit3, h=20,xreg=tBSx)
+plot(BSales$sales[81:100],type="l")
+lines(seq(1,20),f$mean,col="blue")
+ASE = mean((BSales$sales[81:100]-f$mean)^2)
+ASE
+```
+
+```{r PreLive}
+data("sunspot.classic")
+
+# Plot the data
+plotts.sample.wge(sunspot.classic)
+
+# for ASE calc, create train/test splits
+train=ts(sunspot.classic[1:156])
+test=ts(sunspot.classic[157:176])
+
+# Possible seasonality is seen in the realization & parzen plots so let's overfit and check the factors
+est.ar.wge(train,p=14,type='mle')
+
+# A there is a 1-B factor and a stronger factor at freq=.0937. let's remove both
+traindif = artrans.wge(train,phi.tr=1)                    # dif does not appear white
+traindif2 = artrans.wge(traindif,phi.tr=c(1.5658,-.8895)) # now dif2 appears white
+
+# Check AIC
+aic5.wge(traindif2,p=0:6,q=0:4)  # AIC select AR(5,3)
+AR31mod = est.arma.wge(traindif2,p=5,q=3)
+AR31mod
+
+# Check the factor table to make sure no further reductions/expansions
+factor.wge(phi=AR31mod$phi) # looks good as is
+
+
+
+fore.arma.wge(sunspot.classic,phi=AR31mod$phi,theta=AR31mod$theta,n.ahead=50,lastn=T)
+preds = predict
+```
+
+```{r Prelive 1}
+melanoma=c(1,.9,.8,1.4,1.2,1,1.5,1.9,1.5,1.5,1.5,1.6,1.8,2.8,2.5,2.5,2.4,2.1,1.9,2.4,2.4,2.6,2.6,4.4,4.2,3.8,3.4,3.6,4.1,3.7,4.2,4.1,4.1,4,5.2,5.3,5.3)
+sunspot=c(40,115,100,80,60,40,23,10,10,25,75,145,130,130,80,65,20,10,5,10,60,190,180,175,120,50,35,20,10,15,30,60,105,105,105,80,65)
+
+# plot the data
+plotts.sample.wge(melanoma)
+plotts.sample.wge(sunspot)
+
+# create training set, test set = 5 pts
+mel.67=melanoma[1:32]
+sun.67=sunspot[1:32]
+
+# --- VAR Model ---
+# put variables together
+X=cbind(mel.67,sun.67)
+X
+# identify the lag k
+VARselect(X,lag.max=6,type="const",season=NULL,exogen=NULL) # AIC=5.04
+  # VARselect picks p=4 using AIC
+
+# estimate coefficients
+lsfit=VAR(X,p=4,type="const")
+summary(lsfit)
+
+# perform predictions
+preds=predict(lsfit,n.ahead=5)
+preds
+
+# get predictions for melanoma
+preds$fcst$mel.67[1:5,1]
+
+# plot data & add predictions to plot, execute next 2 line together
+plot(seq(1,37,1),melanoma,type="b",ylim=c(0,6))
+points(seq(33,37,1),preds$fcst$mel.67[1:5,1],type="b",pch=15)
+
+fanchart(preds)
+  # sunspots helps predict melanoma better than melanoma predicts sunspots
+
+ASE=mean((melanoma[33:37]-preds$fcst$mel.67[1:5,1])^2)
+ASE
+
+
+# --- NN Model ---
+
+# create Time Series training set, test set = 5 pts
+mel.ts=ts(melanoma[1:32])
+sun.ts=ts(sunspot[1:37])
+
+# Add additional Regressors & fit with CV
+sun.ts.DF = data.frame(sun.ts) # make sun data into dataframe
+fitNN = mlp(mel.ts,xreg=sun.ts.DF,hd.auto.type = "cv")
+fitNN
+plot(fitNN) # plot the NN
+
+# forecast and plot
+f = forecast(fitNN, h=5,xreg=sun.ts.DF)
+plot(melanoma[33:37],type="l")
+lines(seq(1,5),f$mean,col="blue")
+
+# calc ASE
+ASE_NN = mean((melanoma[33:37]-f$mean)^2)
+ASE_NN
+```
+
+```{r Prelive 2}
+data = read.csv("la_cmort_study.csv", header=T)
+
+#plot data
+plotts.sample.wge(data$temp)
+plotts.sample.wge(data$part)
+plotts.sample.wge(darta$cmort)
+
+# create a training data set for ASE calc
+cmort=ts(data$cmort[1:488])
+
+# create regressors
+temp=ts(data$temp[1:508])
+part=ts(data$part[1:508])
+tp.DF=data.frame(temp=temp, part=part)
+
+# fit NN model
+fitNN=mlp(cmort, xreg=tp.DF,hd.auto.type = "cv")
+fitNN
+plot(fitNN)
+
+# forecast and plot
+f=forecast(fitNN, h=20, xreg=tp.DF)
+plot(data$cmort[489:508], type="l")
+lines(seq(1,20),f$mean, col="blue")
+
+# calc ASE
+ASE_nn=mean((data$cmort[489:508]-f$mean)^2)
+ASE_nn
+
+
+```
+
+```{r Prelive 3}
+# -- Model Propane with NN --
+propane <- read.csv("WeeklyPropanePricesPerGallon.csv")
+propane <- na.omit(propane)
+names(propane) <- c("Date","Price") # rename table columns
+
+# Create training and test data
+propane.train=ts(propane$Price[1:1260])
+propane.test=propane$Price[1261:1400] # make test data a time series
+
+# fit NN model 
+fitNN=mlp(propane.train,hd.auto.type = "cv")
+fitNN
+plot(fitNN)
+
+# forecast and plot
+f=forecast(fitNN, h=140)
+plot(f)
+plot(propane$Price[1261:1400],type="l")
+lines(seq(1:140),f$mean,col="blue")
+
+# calc ASE
+ASE_propaneNN=mean((propane.test-f$mean)^2)
+ASE_propaneNN
+```
+
+```{r}
+# Propane ARIMA Analysis
+#----------------
+
+# Let's overfit with p=10 & chk the factor table
+#  -(1-B) term seen, no matches for seasonality
+est.ar.wge(propane$Price,p=10,type='burg')    
+
+# (1-B) term seen in factor table, perform (1-B) diff
+#  -not quite white noise but looks stationary
+dif=artrans.wge(propane$Price, phi.tr=1)    
+acf(dif)
+
+# check AIC/BIC
+aic5.wge(dif,p=0:10,q=0:4)            
+aic5.wge(dif,p=0:10,q=0:4,type='bic') 
+
+# produce the model
+fest=est.arma.wge(dif,p=3,q=2)       
+fest
+paste("Estimated Model's Phi's=",fest$phi)
+paste("Estimated Model's Theta's=",fest$theta)
+paste("variance=",fest$avar)
+paste("mean=",mean(propane$Price))
+
+# check factor table for any reductions/exansions
+factor.wge(phi=fest$phi)
+
+# let's forecast this model
+fore.arma.wge(propane$Price,phi=fest$phi,theta=fest$theta,n.ahead=140)
+ffore.arima=fore.arma.wge(propane$Price,phi=fest$phi,theta=fest$theta,n.ahead=140,lastn=T)
+plot(propane$Price[1260:1400],type="l")
+lines(seq(1:140),ffore.arima$f[1260:1400],col="blue")
+
+# Get ASE
+ASE.arima = mean((propane$Price[(1400-140):1400]-ffore.arima$f)^2)                  
+ASE.arima
+```
+

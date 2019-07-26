@@ -182,7 +182,7 @@ ASE.AR31
 ASE.AR113
 ```
 
-```{r Global Temp Modeled as Signla Plus Noise}
+```{r Global Temp Modeled as Signal Plus Noise}
 data(hadley)
 
 # 1. fit the model and get the residuals
@@ -272,6 +272,9 @@ sun = newSunspot$Sunspot
 # Plot the data
 plotts.sample.wge(sun)
 
+
+est.ar.wge(sun,p=12)  # overfit for seasonality
+
 # search/select a model 
 aic5.wge(sun,p=0:15,q=0:3,type='bic') # bic select AR(6,2)
 
@@ -322,7 +325,7 @@ plotts.sample.wge(accuspike$users)
 # some wandering behavior seen in parzen along with a some frequencies at .14, .28, .415, and .5
 
 # check AIC suggestion
-aic5.wge(dif2,p=0:13,q=0:3,type='bic')
+aic5.wge(accuspike$users,p=0:13,q=0:3,type='bic')
 # BIC selects AR(8)
 
 # let's overfit, to see the factors

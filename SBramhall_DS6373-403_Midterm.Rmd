@@ -13,6 +13,35 @@ library(stats)
 library(tidyverse)
 ```
 
+```{r Prob1}
+x=c(6,8,13,12,10,7,4,2,1)
+gamma0=var(x)*((length(x)-1)/length(x))
+```
+
+```{r Prob2}
+autocorr=acf(x,lag.max=length(x)-1)
+autocorr
+```
+
+```{r Prob3}
+# counted x0,X3 x1,x4 x2,x5 x3,x6 x4,x7 x5,x8 
+# 6 pairs
+```
+
+```{r Prob4}
+# for rho7: 1,8 2,6 
+```
+
+```{r Prob5}
+# (1-.6B+.4B^2)
+psi.weights.wge(phi=c(.6,-.4),lag.max=length(x)-1)
+
+x=gen.arma.wge(n=100,phi=-.5,sn=7)
+plotts.true.wge(n=100,phi=-.5)
+```
+
+
+
 ```{r}
 
 # (1-.4B+.6B^2-.8B^3)(X_t-9)=a_t
