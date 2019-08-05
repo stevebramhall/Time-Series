@@ -1,0 +1,155 @@
+---
+title: "Homework"
+author: "Steve Bramhall"
+date: "August 2, 2019"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+library(stats)
+library(tidyverse)
+```
+
+```{r Prob 7.3 a}
+# Find the YW, Burg, and ML estimates of the model parameters
+# Assume AR2 & AR8
+data("sunspot.classic")
+x=sunspot.classic
+mean(x)
+est.ar.wge(x,p=2,type='yw')
+est.ar.wge(x,p=8,type='yw')
+est.ar.wge(x,p=2,type='burg')
+est.ar.wge(x,p=8,type='burg')
+est.ar.wge(x,p=2,type='mle')
+est.ar.wge(x,p=8,type='mle')
+
+# plug phi's into (1+ph1*B+phi2*B^2)(Xt+mean), note variance $avar
+
+```
+
+```{r Prob 7.4}
+# Perform a mini-sim by generative 3 diff realizations of length n=100
+# and find the Yw, Burg, ML estimates
+# a. True model => (1-1.3B+.6B^2)(Xt+20)=at
+
+factor.wge(phi=c(1.3,-.6))
+
+data=gen.arma.wge(n=100,phi=c(1.3,-.6),sn=1)
+dataplusmean=data-20
+yw=est.ar.wge(dataplusmean,p=2,type='yw')     # may be the poorest option finding only 1 factor vs 2
+burg=est.ar.wge(dataplusmean,p=2,type='burg')
+ml=est.ar.wge(dataplusmean,p=2,type='mle')
+
+```
+
+```{r Prob 7.5}
+# plot parzen window, AR2 spectral density est based on MLE, AR8 spectral density est based on mle
+data("sunspot.classic")
+parzen.wge(sunspot.classic)
+a=est.ar.wge(sunspot.classic,p=2,type='mle')
+plotts.true.wge(phi=a$phi)
+b=est.ar.wge(sunspot.classic,p=8,type='mle')
+plotts.true.wge(phi=b$phi)
+```
+
+```{r Prob 8.1}
+data(prob8.1a)
+plotts.sample.wge(prob8.1a)
+
+```
+
+```{r Prob 8.2}
+# (1-1.5B+1.21B^2-.455B^2)(Xt-50)=at
+factor.wge(phi=c(1.5,-1.21,.455))            # factor table to get phis
+x=gen.arma.wge(n=200,phi=c(1.5,-1.21,.455))  # generate wave
+x=x+50;                                      # add mean of 50
+plotts.wge(x)                                # plot
+aic5.wge(x,p=0:5,q=0:3)                      # estimate model orders
+est.arma.wge(x,p=5,q=2)                      # estimate the model using the selected orders
+mean(x)
+```
+
+```{r Prob 8.3}
+data(wtcrude)
+aic5.wge(wtcrude,p=0:8,q=0:3)                # estimate model orders
+est.arma.wge(wtcrude,p=7,q=2)                # estimate the model using the selected orders
+mean(wtcrude)
+```
+
+```{r Prob 8.5}
+# (1-B^6)(1-.8B)(Xt-25)=at
+x=gen.aruma.wge(n=200,phi=c(.8))   # generate data
+x=x+25                             # add mean
+plotts.wge(x)                      # plot to confirm mean shift
+est.ar.wge(x,p=12,type='burg')     # overfit1 to identify non-stationary factors
+est.ar.wge(x,p=15,type='burg')     # overfit2 to identify non-stationary factors, 2nd time to confirm
+dif=artrans.wge(x,phi.tr=c(0,0,0,0,0,1)) # remove (1-B^6) seasonal term
+aic5.wge(dif,p=0:8,q=0:4)          # AIC selects an AR(7) model
+est.arma.wge(dif,p=7,q=0)          # estimate the model using the selected orders
+
+```
+
+```{r Prob 8.6}
+data(freight)
+x=freight
+mean(x)
+x=x+mean(x)
+plotts.sample.wge(x)
+est.ar.wge(x,p=15,type='burg')               # overfit1 to identify non-stationary factors
+d1=artrans.wge(x,phi.tr=1)                   # remove trend
+d2=artrans.wge(d1,phi.tr=c(rep(0,11),1))     # remove annual seasonality
+aic5.wge(d2,p=0:8,q=0:3)                     # aic5 selects MA(1)
+est.12.1=est.arma.wge(d2,p=0,q=1)                     # estimate the model using the selected orders
+
+# residuals check 1
+plotts.sample.wge(est.12.1$res)
+acf(est.12.1$res)                            # acf w/ CIs appear white
+
+# residuals check 2
+ljung.wge(est.12.1$res,p=0,q=1)             # FTR at alpha .05, is white
+ljung.wge(est.12.1$res,p=0,q=1,K=48)        # FTR at alpha .05, is white
+```
+
+```{r Prob 9.1}
+# Check the appropriateness of the fitted model
+# (1-1.5B+1.21B^2-.455B^2)(Xt-50)=at
+factor.wge(phi=c(1.5,-1.21,.455))            # factor table to get phis
+x=gen.arma.wge(n=200,phi=c(1.5,-1.21,.455))  # generate wave
+x=x+50;                                      # add mean of 50
+plotts.wge(x)                                # plot
+aic5.wge(x,p=0:5,q=0:3)                      # estimate model orders
+est.3.0=est.arma.wge(x,p=3,q=0)                      # estimate the model using the selected orders
+mean(x)
+
+# - Examine appropriateness of model -
+
+# residuals check 1
+plotts.sample.wge(est.3.0$res)
+acf(est.3.0$res)                             # acf w/ CIs appear white
+
+# residuals check 2
+ljung.wge(est.3.0$res,p=12,q=1)              # FTR at alpha .05, is white
+ljung.wge(est.3.0$res,p=12,q=1,K=48)         # FTR at alpha .05, is white
+
+# slope and intercept
+est.3.0$p # Phi's for final signal + noise model
+
+# 6. plot the model to compare vs the actual
+x2=gen.arma.wge(200,phi=est.3.0$phi,theta=est.3.0$theta,vara=est.3.0$avar)
+plotts.wge(x2)
+plotts.wge(x)
+
+# 7. forecast 
+fore=fore.arma.wge(x,phi=est.3.0$phi,theta=est.3.0$theta,n.ahead=50,limits=T,lastn=F)
+
+# 8. check ASE
+ar3.fore=fore.arma.wge(x,phi=est.3.0$phi,theta=est.3.0$theta,n.ahead=50,limits=F,lastn=T)
+ASE.AR = mean(x[200-20+1]:200-ar3.fore$f)^2
+ASE.AR
+```
+
+
+

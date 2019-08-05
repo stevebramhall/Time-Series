@@ -213,7 +213,7 @@ plotts.wge(fitco$residuals)
 acf(fitco$residuals)
 ljung.wge(fitco$residuals)
 
-d      # slope and intercept
+# slope and intercept
 ar.z$p # Phi's for final signal + noise model
 
 # 6. plot the model to compare vs the actual

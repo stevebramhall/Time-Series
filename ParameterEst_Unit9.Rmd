@@ -1,0 +1,49 @@
+---
+title: "HW_Unit9"
+author: "Steve Bramhall"
+date: "July 28, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+library(stats)
+library(tidyverse)
+```
+
+```{r Prob 7.3 a}
+# Find the YW, Burg, and ML estimates of the model parameters
+# Assume AR2 & AR8
+data("sunspot.classic")
+x=sunspot.classic
+mean(x)
+est.ar.wge(x,p=2,type='yw')
+est.ar.wge(x,p=8,type='yw')
+est.ar.wge(x,p=2,type='burg')
+est.ar.wge(x,p=8,type='burg')
+est.ar.wge(x,p=2,type='mle')
+est.ar.wge(x,p=8,type='mle')
+
+# plug phi's into (1+ph1*B+phi2*B^2)(Xt+mean), note variance $avar
+
+```
+
+```{r Prob 7.4}
+# Perform a mini-sim by generative 3 diff realizations of length n=100
+# and find the Yw, Burg, ML estimates
+# a. True model => (1-1.3B+.6B^2)(Xt+20)=at
+
+factor.wge(phi=c(1.3,-.6))
+
+xa=gen.arma.wge(n=100,phi=c(1.3,-.6),sn=1)
+xa1=xa-20
+a1_yw=est.ar.wge(xa1,p=2,type='yw')
+a1_burg=est.ar.wge(xa1,p=2,type='burg')
+a1_ml=est.ar.wge(xa1,p=2,type='mle')
+
+
+
+```
+
+
