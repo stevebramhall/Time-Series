@@ -20,7 +20,6 @@ gen.sigplusnoise.wge(100,b0=0, b1=0,vara=10)
 # noise from AR1 with phi 
 gen.sigplusnoise.wge(100,b0=0, b1=0,phi=.975,vara=10) 
 
-
 # Periodic Signal
 gen.sigplusnoise.wge(100,coef=c(5,0),freq=c(.1,0),psi=c(0,.25),phi=.975,vara=10)
 

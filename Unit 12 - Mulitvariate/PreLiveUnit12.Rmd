@@ -16,8 +16,8 @@ library(RColorBrewer)
 data = read.csv("la_cmort_study.csv", header=T)
 
 # corr matrix
-#library(tidyverse)
-#ggpairs(data[,2:4])
+library(tidyverse)
+ggpairs(data[,2:4])
 
 # plot the temp
 plotts.sample.wge(data$temp)
@@ -62,13 +62,13 @@ train.partL4 = c(rep(NA,4),train.part[(1:(length(train.part)-4))]) # part lagged
 train.tempL1 = ts(train.tempL1)  # add new lag to train data
 train.partL4 = ts(train.partL4)  # add new lag to train data
 
-# multiple regression fit
+# multiple regression fit with lagged variables
 fit1 = lm(train.cmort~train.tempL1+train.partL4)
 summary(fit1) # check if variables are significant
 
 # get order of residuals
 phi=aic.wge(fit1$residuals, p=0:12,q=0, type="bic")
-phi # AIC pick p=3
+phi # AIC pick p=2
 
 # model residuals to get std errors
 residfit1 = arima(train.cmort,order=c(phi$p,0,0),xreg=cbind(train.tempL1,train.partL4))
@@ -85,7 +85,7 @@ ltest2$pval
 preds = predict(residfit1,newxreg=data.frame(test.temp,test.part))
 preds        
 plot(seq(1,508,1),data$cmort,type="l")
-points(seq(489,508,1),preds$pred,type="b",pch=15)
+points(seq(489,508,1),preds$pred,type="b",pch=15,col='blue')
 
 ASE1=mean((test.cmort[1:20]-preds$pred[1:20])^2)
 ASE1
@@ -116,7 +116,7 @@ ltest2$pval
 preds2 = predict(residfit2,newxreg=data.frame(t=c(489:508),test.temp,test.part))
 preds2        
 plot(seq(1,508,1),data$cmort,type="l")
-points(seq(489,508,1),preds2$pred,type="b",pch=15)
+points(seq(489,508,1),preds2$pred,type="b",pch=15,col='blue')
 
 ASE2=mean((test.cmort[1:20]-preds2$pred[1:20])^2)
 ASE2
@@ -126,14 +126,15 @@ library(vars)
 # combine variables
 X=cbind(train.cmort,train.temp,train.part)
 
-VARselect(X, lag.max = 12, type = "const", season = NULL, exogen = NULL) 
-# VARselect picks p=6 (using AIC)
+VARselect(X, lag.max = 15, type = "const", season = NULL, exogen = NULL) 
+# VARselect picks p=12 using AIC
+# VARselect picks p=2  using BIC
 
 
 #### Has an option season = 52
 
 # Estimate the coefs
-lsfit=VAR(X,p=6,type='const')
+lsfit=VAR(X,p=2,type='const')
 lsfit
 
 # Get predictions
@@ -148,7 +149,7 @@ ASE3
 
 # plot the data
 plot(seq(1,508,1),data$cmort,type="l")
-points(seq(489,508,1),predVAR,type="b",pch=15)
+points(seq(489,508,1),predVAR,type="b",pch=15,col='blue')
 
 # fan chart using RColorBrewer
 fanchart(preds3, colors=brewer.pal(n=8,name="Blues"))

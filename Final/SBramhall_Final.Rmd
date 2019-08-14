@@ -1,0 +1,212 @@
+---
+title: "Time Series Final"
+author: "Steve Bramhall"
+date: "August 13, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+library(vars)
+library(RColorBrewer)
+library(dplyr)
+library(GGally)
+library(nnfor)
+```
+
+1. Plot the respiratory mortality data.
+```{r Prob 1}
+data = read.csv("la_cmort_study.csv", header=T)
+
+# plot the temp
+plotts.sample.wge(data$temp)
+acf(data$temp[1:254])    # acf stationarity check
+acf(data$temp[255:508])  # acf stationarity check
+
+# plot the pollution
+plotts.sample.wge(data$part)
+acf(data$part[1:254])    # acf stationarity check
+acf(data$part[255:508])  # acf stationarity check
+
+# plot the cardica mortality
+plotts.sample.wge(data$cmort)
+acf(data$cmort[1:254])   # acf stationarity check
+acf(data$cmort[255:508]) # acf stationarity check
+```
+
+```{r Check correlation between variables}
+ggpairs(data[2:4]) #matrix of scatter plots
+```
+
+<font color="blue">
+The variables appear independent so we will proceed with a univariate analysis followed by Multiple Linear Regression (MLR) with correlated errors.
+</font>
+
+###2. Comment on stationarity or nonstationarity.
+<font color="blue">
+The realizations for mortality, particulates, and temperature have some pseudo cyclic behavior with multiple frequencies which is an indicator of correlation. Their means and variances appear constant over time. Their lags do not appear to be dependent on time as indicated by their divided ACFs. There may be some slight wandering with the cardiac mortality realization but this is one realization so the evidence suggests stationarity.
+</font>
+
+###3a. Perform a univariate analysis using AR, ARMA, ARMIA or ARUMA. Clearly explain how you arrived at your final model. Build a neural network based model. Build an ensemble model between the two models.
+
+```{r Prob 3a-Univaritate Analysis for Particulates}
+
+# -- Univariate Analysis of Particulates Using ARUMA --
+
+part52 = artrans.wge(data$part,c(rep(0,51),1))      # since the data is weekly, remove weekly trend
+acf(part52)                                         # confirm ACF is ~ white noise, it is!
+
+# Perform model selection
+aic5.wge(part52)                                    # AIC picks ARMA(2,1)
+aic5.wge(part52,type = "bic")                       # BIC picks ARMA(2,1)
+
+# Check for white noise
+ljung.wge(part52)                                   # FTR, p-value=.11
+ljung.wge(part52, K = 48)                           # FTR, p-value=.302
+acf(part52,lag.max = 48)                            # Box-Jenkins, acf looks consistent with white noise as previosly shown
+
+# Plot ARUMA forecast, using ARUMA due to known weekly seasonality of data
+predsPart = fore.aruma.wge(data$part,s = 52, n.ahead=5,limits=F)
+```
+
+<font color="blue">
+<u>Univariate Analysis for Particulates</u>
+
+Since the data is weekly, removing the weekly seasonality occurs first. The differenced data is checked by viewing the resulting ACF with 95% confidence limits and results appear white. Next, the model is selected using the AIC and BIC criteria and both result in a ARMA(2,1) model. The  Ljung-Box test with K=24 and K=48 both fail to reject the null and the Box-Jenkins test all support white noise. Since the data is weekly seasonal, an ARUMA forecast is performed and results are saved for later use.
+</font>
+
+```{r Prob 3a-Univaritate Analysis for Temperature}
+
+# -- Univariate Analysis of Temperatures Using ARUMA --
+
+temp52 = artrans.wge(data$temp,c(rep(0,51),1))      # since we know the data is weekly, remove weekly trend
+acf(temp52)                                         # confirm ACF is ~ white noise, it is!
+
+# model selection
+aic5.wge(temp52)                                    # AIC picks ARMA(0,0)
+aic5.wge(temp52,type = "bic")                       # BIC picks ARMA(0,0)
+
+# Check for white noise
+ljung.wge(temp52)                                   # FTR, p-value=.129
+ljung.wge(temp52, K = 48)                           # Barely reject Ho, p-value=.032
+acf(temp52,lag.max = 48)                            # Box-Jenkins, acf looks consistent with white noise as previosly shown
+
+# although Ljung0-Box with K=48 barely rejects Ho, K=24 FTR Ho and Box-Jenkins ACF is consisten with white noise, looks good
+
+# Plot ARUMA Forecast
+predsTemp = fore.aruma.wge(data$temp, s=52, n.ahead=5, limits=F)
+```
+
+<font color="blue">
+<u>Univariate Analysis for Temperature</u>
+
+Since the data is weekly, removing the weekly seasonality occurs first. The differenced data was checked by viewing the resulting ACF with 95% confidence limits and results appear white. Next, the model was selected using the AIC and BIC criteria and both resulted in a ARMA(0,0) model. The  Ljung-Box test with K=24 failed to reject the null but the Ljung-Box test with K=48 barely rejects Ho with a p-value=.032. However, the Box-Jenkins test support white noise so no concerns. Since the data is weekly seasonal, an ARUMA forecast is performed and results are saved for later use.
+</font>
+
+```{r Prob 3a-Cmort MLR with Correlated Errors}
+
+# -- Model cmort based on predicted part, predicted temp, and Week using MLR with Correlated Errors --
+
+ksfit = lm(cmort~temp+part+Week, data = data)       # get linear fit to access residuals
+
+# get model for residuals
+phi = aic.wge(ksfit$residuals)                      # aic selects AR(2)
+phi
+
+# fit arima with residual phis, remove weekly seasonality and incl ext vars temp, part, week
+attach(data)
+fit = arima(cmort,order=c(phi$p,0,0), seasonal=list(order=c(1,0,0),period=52), xreg = cbind(temp, part, Week))
+fit
+
+# The intercept is significantly different from 0, the particulates and Time are significant, but the temperature is not.
+
+# Check residuals for white noise
+ljung.wge(fit$residuals)                            # Barely reject, p-value=.048
+ljung.wge(fit$residuals, K = 48)                    # Reject Ho, p-value=.003
+acf(fit$residuals,lag.max = 48)                     # Box-Jenkins, acf looks
+
+# acf show maybe 3 points out of 40 outside the limits but this really isn't bad
+
+# build DF of predicted variables
+last30 = data.frame(temp = data$temp[479:508], part = data$part[479:508], Week = seq(479,508,1))
+
+# get predictions
+predsCMort = predict(fit,newxreg=last30)
+
+# plot the next 30 cmorts
+plot(seq(1,508,1),cmort,type="l",xlim=c(0,538),ylab="Cariac Mortality",main="30 Week Cardiac Mortality Forecast")
+lines(seq(509,538,1),predsCMort$pred,type="l",col="blue")
+
+ASE = mean((data$cmort[479:508] - predsCMort$pred)^2)
+ASE
+
+```
+
+<font color="blue">
+<u>Cmort Multiple Linear Regression with Correlated Errors</u>
+
+The goal is to develop a model to predict cardiac mortality. Since the variables were seen earlier to be independent a MLR model using correlated errors was chosen. A linear fit was performed using particulates, temperature, and time. AIC selecetd an AR(2) model for the residuals. The ARIMA function was used to fit the residuals, applying weekly seasonality and including external varibles temperature, particulate, and time (week #). The fitted results showed the intercept is significantly different from 0, the particulates and time are significant, but the temperature is not.
+
+Next, the residuals were checked for white noise. The Ljung-Box test with K=24 barely rejects with a p-value=.048 and with K=48 it rejects Ho. When reviewing the ACFs, maybe 3 points our of 40 are outside the limits but this is not bad. Judgement is to proceed. 
+
+A dataframe of the predicted temperature and particulates from the univariate analysis along with the week number was created. The plot above shows the realization with the predicted values in blue. The ASE for this model is **56.59**.
+</font>
+
+
+```{r Prob 3a-Cmort Neural Network Model}
+set.seed(2)
+cmort = ts(airlog[1:108],frequency=12,start=c(1949,1)) # training data
+
+# Last 36 months in the Test Set
+lairTest = ts(airlog[109:144],frequency=12,start=c(1958,1)) # test data, 36 pts
+
+# fit the NN model
+fit.mlp=mlp(lairTrain,difforder=c(12),hd.auto.type = "cv") # ADDED DIFFORDER
+fit.mlp
+
+# plot NN
+plot(fit.mlp)
+
+# forecast
+fore.mlp=forecast(fit.mlp,h=36)
+
+# plot forecast
+plot(fore.mlp)
+
+# calc ASE
+ASE = mean((lairTest-fore.mlp$mean)^2)
+ASE
+
+```
+
+
+
+###3b. Compare the models and describe which univariate model you feel is the best and why.
+```{r Prob 3b}
+
+```
+
+###4a. Perform a multivariate analysis using at least a VAR or MLR with correlated errors and a MLP model. Clearly explain how you arrived at the final model. Use forecasted values of the predictors where appropriate.
+```{r}
+
+```
+
+###4b. Fit and evaluate an ensemble model from the models you fit in 4a.
+```{r}
+
+```
+
+###4c. Compare these models and describe which multivariate model you feel is the best and why.
+```{r}
+
+```
+
+###5. Use the model you feel is most useful to forecat the next 5 weeks of respiratory mortality.
+```{r}
+
+```
+
+
+
+

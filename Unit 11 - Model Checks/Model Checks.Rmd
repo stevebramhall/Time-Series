@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tswge)
+library(tseries)
 ```
 
 The model such as AR assume the at value is white noise. The following steps show how to check the residuals of your final model to confirm the model's validity.
@@ -411,4 +412,9 @@ gen.aruma.wge(n=200,phi=est.spike$phi,d=0,vara=1)
 
 ```
 
+```{r}
+x=gen.sigplusnoise.wge(n=1000, coef = .4, freq = .2, psi = .3)
+plotts.sample.wge(x)
+
+```
 

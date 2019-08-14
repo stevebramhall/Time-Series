@@ -89,7 +89,7 @@ aut
 
 #Q4
 sum=0
-for (k in 1:nlag) {
+for (k in 1:(length(x)-1)) {
   sum = sum + (1-k/n)*aut$acf[k+1]*gamma0
 }
 vxbar=2*sum/n + gamma0/n # note the mult of sum by 2

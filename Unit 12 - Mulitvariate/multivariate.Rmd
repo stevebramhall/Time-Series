@@ -269,3 +269,7 @@ data = read.csv("la_cmort_study.csv", header=T)
 ccf(data$part,data$cmort,ylim=c(-1,1))
 ```
 
+```{r}
+
+```
+

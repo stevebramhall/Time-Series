@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tswge)
+library(tseries) # dickey-fuller test asd.test
 ```
 
 ```{r MLE for ARMA(2,1)}
@@ -240,9 +241,6 @@ est2=est.arma.wge(y,p=1,q=0)    #
 fore.arma.wge(y,phi=est2$phi,n.ahead=10)
 
 
-
-
-
 # MLE
 bo4 <- read.csv("Unit9_1.csv")
 plotts.sample.wge(bo4$x)                        # view data, chk if wht noise
@@ -250,7 +248,7 @@ acf(bo4)
 aic5.wge(bo4$x,p=0:10,q=0:3)                    # check AICs
 aic5.wge(bo4$x,p=0:10,q=0:3,type='bic')         # check BICs
 
-est.mle = est.arma.wge(bo4$x,p=5,q=3)  # fit AR(2), MLE
+est.mle = est.arma.wge(bo4$x,p=5,q=3)           # fit AR(2), MLE
 factor.wge(bo4$theta)
 forecast.mle = fore.arma.wge(bo4$x,phi=est.mle$phi,n.ahead=10,lastn=T) # forecast w/ est phis
 ASE.mle = mean((bo4$x[(100-10+1):100]-forecast.mle$f)^2)                     # ASE calc
@@ -261,10 +259,6 @@ est.burg=est.ar.wge(bo4$x,p=5,q=3,type='burg')                               # f
 forecast.burg = fore.arma.wge(bo4$x,phi=est.burg$phi,n.ahead=10,lastn=T)     # forecast w/ est phis
 ASE.burg = mean((txgas$Price[(100-10+1):100]-forecast.burg$f)^2)             # ASE calc
 paste("Burg ASE = ",ASE.burg)                                                # print ASE
-
-
-
-
 
 ```
 
@@ -280,5 +274,17 @@ ASE.mle = mean((LakeHuron[(98-10+1):98]-forecast.mle$f)^2)                     #
 paste("MLE ASE = ",ASE.mle)                                                  # print ASE
 
 
+```
+
+```{r}
+gen.sigplusnoise.wge(1000,coef=c(1,0),freq=c(.2,0),psi=c(.2,0))
+gen.sigplusnoise.wge(1000,b0=3,b1=0,phi=.45)
+gen.sigplusnoise.wge(1000,b0=3,b1=8,phi=.87)
+```
+
+
+```{r}
+x=gen.arma.wge(100,phi=.5)
+factor.wge(phi=c(-.8,.2))
 ```
 

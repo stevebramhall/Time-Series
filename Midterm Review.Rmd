@@ -9,6 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tswge)
+library(vars)
+library(tseries)
 ```
 
 Plot ACF's, log and non-log spectral densities

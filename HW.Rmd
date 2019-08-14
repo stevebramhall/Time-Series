@@ -81,14 +81,21 @@ mean(wtcrude)
 
 ```{r Prob 8.5}
 # (1-B^6)(1-.8B)(Xt-25)=at
-x=gen.aruma.wge(n=200,phi=c(.8))   # generate data
-x=x+25                             # add mean
-plotts.wge(x)                      # plot to confirm mean shift
-est.ar.wge(x,p=12,type='burg')     # overfit1 to identify non-stationary factors
-est.ar.wge(x,p=15,type='burg')     # overfit2 to identify non-stationary factors, 2nd time to confirm
+x=gen.aruma.wge(n=200,phi=c(.8),s=6,sn=1) # generate data
+x=x+25                               # add mean
+plotts.wge(x)                        # plot to confirm mean shift
+
+est.ar.wge(x,p=12,type='burg')       # overfit1 to identify non-stationary factors
+est.ar.wge(x,p=15,type='burg')       # overfit2 to identify non-stationary factors, 2nd time to confirm
+
 dif=artrans.wge(x,phi.tr=c(0,0,0,0,0,1)) # remove (1-B^6) seasonal term
-aic5.wge(dif,p=0:8,q=0:4)          # AIC selects an AR(7) model
-est.arma.wge(dif,p=7,q=0)          # estimate the model using the selected orders
+dif2=artrans.wge(dif,phi.tr=1)       # the acf/box-jenkins now shows acfs closer to white noise because the wandering is removed
+
+aic5.wge(dif2,p=0:8,q=0:4)           #  AIC selects an ARMA(1,1) model
+est.arma.wge(dif2,p=1,q=1)           # estimate the model using the selected orders
+
+# (1-phi*B)(1-B^6)(1-B)=at(1-theta*B)
+# (1-.5589B)(1-B)(1-B^6)=at(1-.836B)
 
 ```
 
@@ -102,7 +109,7 @@ est.ar.wge(x,p=15,type='burg')               # overfit1 to identify non-stationa
 d1=artrans.wge(x,phi.tr=1)                   # remove trend
 d2=artrans.wge(d1,phi.tr=c(rep(0,11),1))     # remove annual seasonality
 aic5.wge(d2,p=0:8,q=0:3)                     # aic5 selects MA(1)
-est.12.1=est.arma.wge(d2,p=0,q=1)                     # estimate the model using the selected orders
+est.12.1=est.arma.wge(d2,p=0,q=1)            # estimate the model using the selected orders
 
 # residuals check 1
 plotts.sample.wge(est.12.1$res)
@@ -121,7 +128,7 @@ x=gen.arma.wge(n=200,phi=c(1.5,-1.21,.455))  # generate wave
 x=x+50;                                      # add mean of 50
 plotts.wge(x)                                # plot
 aic5.wge(x,p=0:5,q=0:3)                      # estimate model orders
-est.3.0=est.arma.wge(x,p=3,q=0)                      # estimate the model using the selected orders
+est.3.0=est.arma.wge(x,p=3,q=0)              # estimate the model using the selected orders
 mean(x)
 
 # - Examine appropriateness of model -

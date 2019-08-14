@@ -1,0 +1,88 @@
+---
+title: "Final"
+author: "Steve Bramhall"
+date: "August 2, 2019"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tswge)
+library(stats)
+library(tidyverse)
+library(vars)
+```
+
+```{r Pg 245-6 Ex 6.2}
+# half width = MOE, margin of error
+
+# (1 - .9B)Xt = at
+
+x=gen.arma.wge(1000,phi=.8,sn=1)                       # generate waveform
+estAR1 = est.arma.wge(x,p=1)                           # get estimated phi's, we know it's an AR 1 so p=1
+preds=fore.arma.wge(x,phi=estAR1$phi,n.ahead=50)       # forecast with estimated phi's to get wnv
+preds
+psi.weights.wge(phi=estAR1$phi, lag.max=10)            # check the psi weights from the estimated phi
+
+# all psi weights
+MOE = 1.96*sqrt(preds$wnv)*sqrt(sum(c(1^2,preds$psi^2))) # calc margin or error, wo=1 is added since R doesn't include that psi wt 
+
+# for first limits
+MOE_1 = 1.96*sqrt(preds$wnv)
+preds$f[1] + MOE_1 # ul
+preds$f[1] - MOE_1 # ll
+
+# for 2nd limits
+MOE_2 = 1.96*sqrt(preds$wnv)*sqrt(1^2+preds$psi[1]^2)
+preds$f[2] + MOE_2 # ul
+preds$f[2] - MOE_2 # ll
+
+#confirm
+preds$ll[2]
+preds$ul[2]
+
+# psi weights are only used in this situation (CIs) and in the GLP form (linear combo of wn terms and the coefs of the wn terms are the psi weights)
+
+# for 3rd limits
+MOE_3 = 1.96*sqrt(preds$wnv)*sqrt(1^2+preds$psi[1]^2+preds$psi[2]^2)
+preds$f[3] + MOE_3 # ul
+preds$f[3] - MOE_3 # ll
+
+
+```
+
+
+```{r}
+#(1-.9B)(1-.8B)Xt = at
+#(1-1.7B+.72B^2)Xt = at
+#Phi_1 = 1.7  Phi_2 = -.72
+
+s = c(5,8,9,8,7,6,4,3)
+
+#double check psi weights
+psi.weights.wge(phi = c(1.7, -.72), lag = 5)
+
+#AR(2)
+fit = fore.arma.wge(s,phi = c(1.7, -.72), n.ahead = 3)
+
+#forecasts for l = 1,2 and 3
+fit$f
+
+#Conf limits for l = 3
+#1.75414 +/- 1.96*.9958917*sqrt(1 + 1.7^2 + 2.17^2)
+fit$ll[3]
+fit$ul[3]
+
+#sigma_at_hat
+fit$wnv
+
+#Calc sigma_at_hat
+wnv = 1/(8-2) * sum(fit$resid[3:8]^2)
+wnv
+```
+
+```{r}
+psi.weights.wge(phi = c(.8), lag.max = 3)
+```
+
