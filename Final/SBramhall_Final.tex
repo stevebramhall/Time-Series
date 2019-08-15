@@ -1,0 +1,739 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdftitle={Time Series Final},
+            pdfauthor={Steve Bramhall},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\providecommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+
+  \title{Time Series Final}
+    \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+    \author{Steve Bramhall}
+    \preauthor{\centering\large\emph}
+  \postauthor{\par}
+      \predate{\centering\large\emph}
+  \postdate{\par}
+    \date{August 13, 2019}
+
+
+\begin{document}
+\maketitle
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{data}\NormalTok{(lap)}
+\NormalTok{mort=}\KeywordTok{data.frame}\NormalTok{(}\DataTypeTok{date=}\KeywordTok{time}\NormalTok{(lap),}\DataTypeTok{Time=}\KeywordTok{as.factor}\NormalTok{(}\KeywordTok{seq}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{508}\NormalTok{,}\DecValTok{1}\NormalTok{)),}\KeywordTok{as.matrix}\NormalTok{(lap))}
+
+\KeywordTok{library}\NormalTok{(psych)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Attaching package: 'psych'
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:ggplot2':
+## 
+##     %+%, alpha
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{pairs.panels}\NormalTok{(mort[,}\OperatorTok{-}\DecValTok{5}\NormalTok{], }
+             \DataTypeTok{method =} \StringTok{"pearson"}\NormalTok{, }\CommentTok{# correlation method}
+             \DataTypeTok{hist.col =} \StringTok{"#00AFBB"}\NormalTok{,}
+             \DataTypeTok{density =} \OtherTok{TRUE}\NormalTok{,  }\CommentTok{# show density plots}
+             \DataTypeTok{ellipses =} \OtherTok{TRUE} \CommentTok{# show correlation ellipses}
+\NormalTok{             )}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SBramhall_Final_files/figure-latex/unnamed-chunk-1-1.pdf}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Plot the respiratory mortality data.
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+
+\end{Highlighting}
+\end{Shaded}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Plot the respiratory mortality data.
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data =}\StringTok{ }\KeywordTok{read.csv}\NormalTok{(}\StringTok{"la_cmort_study.csv"}\NormalTok{, }\DataTypeTok{header=}\NormalTok{T)}
+
+\CommentTok{# plot the temp}
+\KeywordTok{plotts.sample.wge}\NormalTok{(data}\OperatorTok{$}\NormalTok{temp)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SBramhall_Final_files/figure-latex/Prob 1-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{acf}\NormalTok{(data}\OperatorTok{$}\NormalTok{temp[}\DecValTok{1}\OperatorTok{:}\DecValTok{254}\NormalTok{])    }\CommentTok{# acf stationarity check}
+\KeywordTok{acf}\NormalTok{(data}\OperatorTok{$}\NormalTok{temp[}\DecValTok{255}\OperatorTok{:}\DecValTok{508}\NormalTok{])  }\CommentTok{# acf stationarity check}
+
+\CommentTok{# plot the pollution}
+\KeywordTok{plotts.sample.wge}\NormalTok{(data}\OperatorTok{$}\NormalTok{part)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SBramhall_Final_files/figure-latex/Prob 1-2.pdf}
+\includegraphics{SBramhall_Final_files/figure-latex/Prob 1-3.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{acf}\NormalTok{(data}\OperatorTok{$}\NormalTok{part[}\DecValTok{1}\OperatorTok{:}\DecValTok{254}\NormalTok{])    }\CommentTok{# acf stationarity check}
+\KeywordTok{acf}\NormalTok{(data}\OperatorTok{$}\NormalTok{part[}\DecValTok{255}\OperatorTok{:}\DecValTok{508}\NormalTok{])  }\CommentTok{# acf stationarity check}
+
+\CommentTok{# plot the cardica mortality}
+\KeywordTok{plotts.sample.wge}\NormalTok{(data}\OperatorTok{$}\NormalTok{cmort)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SBramhall_Final_files/figure-latex/Prob 1-4.pdf}
+\includegraphics{SBramhall_Final_files/figure-latex/Prob 1-5.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{acf}\NormalTok{(data}\OperatorTok{$}\NormalTok{cmort[}\DecValTok{1}\OperatorTok{:}\DecValTok{254}\NormalTok{])   }\CommentTok{# acf stationarity check}
+\KeywordTok{acf}\NormalTok{(data}\OperatorTok{$}\NormalTok{cmort[}\DecValTok{255}\OperatorTok{:}\DecValTok{508}\NormalTok{]) }\CommentTok{# acf stationarity check}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SBramhall_Final_files/figure-latex/Prob 1-6.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{ggpairs}\NormalTok{(data[}\DecValTok{2}\OperatorTok{:}\DecValTok{4}\NormalTok{]) }\CommentTok{#matrix of scatter plots}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SBramhall_Final_files/figure-latex/Check correlation between variables-1.pdf}
+
+ The variables appear independent so we will proceed with a univariate
+analysis followed by Multiple Linear Regression (MLR) with correlated
+errors.
+
+\subsubsection{2. Comment on stationarity or
+nonstationarity.}\label{comment-on-stationarity-or-nonstationarity.}
+
+ The realizations for mortality, particulates, and temperature have some
+pseudo cyclic behavior with multiple frequencies which is an indicator
+of correlation. Their means and variances appear constant over time.
+Their lags do not appear to be dependent on time as indicated by their
+divided ACFs. There may be some slight wandering with the cardiac
+mortality realization but this is one realization so the evidence
+suggests stationarity.
+
+\subsubsection{3a. Perform a univariate analysis using AR, ARMA, ARMIA
+or ARUMA. Clearly explain how you arrived at your final model. Build a
+neural network based model. Build an ensemble model between the two
+models.}\label{a.-perform-a-univariate-analysis-using-ar-arma-armia-or-aruma.-clearly-explain-how-you-arrived-at-your-final-model.-build-a-neural-network-based-model.-build-an-ensemble-model-between-the-two-models.}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# -- Univariate Analysis of Particulates Using ARUMA --}
+
+\NormalTok{part52 =}\StringTok{ }\KeywordTok{artrans.wge}\NormalTok{(data}\OperatorTok{$}\NormalTok{part,}\KeywordTok{c}\NormalTok{(}\KeywordTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{51}\NormalTok{),}\DecValTok{1}\NormalTok{))      }\CommentTok{# since the data is weekly, remove weekly trend}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SBramhall_Final_files/figure-latex/Prob 3a-Univaritate Analysis for Particulates-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{acf}\NormalTok{(part52)                                         }\CommentTok{# confirm ACF is ~ white noise, it is!}
+
+\CommentTok{# Perform model selection}
+\KeywordTok{aic5.wge}\NormalTok{(part52)                                    }\CommentTok{# AIC picks ARMA(2,1)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## ---------WORKING... PLEASE WAIT... 
+## 
+## 
+## Five Smallest Values of  aic
+\end{verbatim}
+
+\begin{verbatim}
+##       p    q        aic
+## 8     2    1   5.225047
+## 6     1    2   5.227023
+## 11    3    1   5.228819
+## 14    4    1   5.230602
+## 12    3    2   5.230981
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{aic5.wge}\NormalTok{(part52,}\DataTypeTok{type =} \StringTok{"bic"}\NormalTok{)                       }\CommentTok{# BIC picks ARMA(2,1)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## ---------WORKING... PLEASE WAIT... 
+## 
+## 
+## Five Smallest Values of  bic
+\end{verbatim}
+
+\begin{verbatim}
+##      p    q        bic
+## 8    2    1   5.261210
+## 1    0    0   5.261226
+## 6    1    2   5.263185
+## 4    1    0   5.271478
+## 2    0    1   5.272038
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# Check for white noise}
+\KeywordTok{ljung.wge}\NormalTok{(part52)                                   }\CommentTok{# FTR, p-value=.11}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Obs -0.05577662 0.1034012 0.05987676 0.1010256 0.05092448 0.09362802 0.09571357 0.08498643 0.0006229897 0.0780049 0.0384301 -0.0647129 0.02773225 -0.01937532 0.01298579 6.928832e-05 -0.009966296 0.03605867 0.01611233 0.01635121 -0.05353086 -0.04577465 0.01134892 0.0299041
+\end{verbatim}
+
+\begin{verbatim}
+## $test
+## [1] "Ljung-Box test"
+## 
+## $K
+## [1] 24
+## 
+## $chi.square
+## [1] 35.54288
+## 
+## $df
+## [1] 24
+## 
+## $pval
+## [1] 0.06074682
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{ljung.wge}\NormalTok{(part52, }\DataTypeTok{K =} \DecValTok{48}\NormalTok{)                           }\CommentTok{# FTR, p-value=.302}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Obs -0.05577662 0.1034012 0.05987676 0.1010256 0.05092448 0.09362802 0.09571357 0.08498643 0.0006229897 0.0780049 0.0384301 -0.0647129 0.02773225 -0.01937532 0.01298579 6.928832e-05 -0.009966296 0.03605867 0.01611233 0.01635121 -0.05353086 -0.04577465 0.01134892 0.0299041 0.004789332 -0.0009208109 0.05183014 -0.0660468 -0.05543925 0.02844053 0.01064092 0.007583799 -0.05369395 0.02009275 -0.003206871 -0.03212606 -0.004742175 0.04009265 -0.06741879 0.0864646 -0.05759432 -0.002036439 0.0327317 0.0237973 0.03137513 -0.04727448 -0.03951558 -0.02110117
+\end{verbatim}
+
+\begin{verbatim}
+## $test
+## [1] "Ljung-Box test"
+## 
+## $K
+## [1] 48
+## 
+## $chi.square
+## [1] 55.12436
+## 
+## $df
+## [1] 48
+## 
+## $pval
+## [1] 0.2232435
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{acf}\NormalTok{(part52,}\DataTypeTok{lag.max =} \DecValTok{48}\NormalTok{)                            }\CommentTok{# Box-Jenkins, acf looks consistent with white noise as previosly shown}
+
+\CommentTok{# Plot ARUMA forecast, using ARUMA due to known weekly seasonality of data}
+\NormalTok{predsPart =}\StringTok{ }\KeywordTok{fore.aruma.wge}\NormalTok{(data}\OperatorTok{$}\NormalTok{part,}\DataTypeTok{s =} \DecValTok{52}\NormalTok{, }\DataTypeTok{n.ahead=}\DecValTok{5}\NormalTok{,}\DataTypeTok{limits=}\NormalTok{F)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SBramhall_Final_files/figure-latex/Prob 3a-Univaritate Analysis for Particulates-2.pdf}
+\includegraphics{SBramhall_Final_files/figure-latex/Prob 3a-Univaritate Analysis for Particulates-3.pdf}
+
+ Univariate Analysis for Particulates
+
+Since the data is weekly, removing the weekly seasonality occurs first.
+The differenced data is checked by viewing the resulting ACF with 95\%
+confidence limits and results appear white. Next, the model is selected
+using the AIC and BIC criteria and both result in a ARMA(2,1) model. The
+Ljung-Box test with K=24 and K=48 both fail to reject the null and the
+Box-Jenkins test all support white noise. Since the data is weekly
+seasonal, an ARUMA forecast is performed and results are saved for later
+use.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# -- Univariate Analysis of Temperatures Using ARUMA --}
+
+\NormalTok{temp52 =}\StringTok{ }\KeywordTok{artrans.wge}\NormalTok{(data}\OperatorTok{$}\NormalTok{temp,}\KeywordTok{c}\NormalTok{(}\KeywordTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{51}\NormalTok{),}\DecValTok{1}\NormalTok{))      }\CommentTok{# since we know the data is weekly, remove weekly trend}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SBramhall_Final_files/figure-latex/Prob 3a-Univaritate Analysis for Temperature-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{acf}\NormalTok{(temp52)                                         }\CommentTok{# confirm ACF is ~ white noise, it is!}
+
+\CommentTok{# model selection}
+\KeywordTok{aic5.wge}\NormalTok{(temp52)                                    }\CommentTok{# AIC picks ARMA(0,0)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## ---------WORKING... PLEASE WAIT... 
+## 
+## 
+## Five Smallest Values of  aic
+\end{verbatim}
+
+\begin{verbatim}
+##      p    q        aic
+## 1    0    0   4.153692
+## 6    1    2   4.156893
+## 8    2    1   4.157374
+## 4    1    0   4.158061
+## 2    0    1   4.158063
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{aic5.wge}\NormalTok{(temp52,}\DataTypeTok{type =} \StringTok{"bic"}\NormalTok{)                       }\CommentTok{# BIC picks ARMA(0,0)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## ---------WORKING... PLEASE WAIT... 
+## 
+## 
+## Five Smallest Values of  bic
+\end{verbatim}
+
+\begin{verbatim}
+##      p    q        bic
+## 1    0    0   4.162733
+## 4    1    0   4.176142
+## 2    0    1   4.176144
+## 7    2    0   4.186350
+## 3    0    2   4.186633
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# Check for white noise}
+\KeywordTok{ljung.wge}\NormalTok{(temp52)                                   }\CommentTok{# FTR, p-value=.129}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Obs 0.004099555 0.05624436 -0.05326951 0.0573932 -0.04861631 0.03098495 0.02718822 0.1004989 0.08851697 -0.01558239 -0.01477092 -0.08380333 -0.01536697 -0.05652122 -0.01491832 0.07303893 0.07379244 0.0110402 -0.03145286 -0.02226394 0.02004529 -0.0838127 0.02392291 0.07002157
+\end{verbatim}
+
+\begin{verbatim}
+## $test
+## [1] "Ljung-Box test"
+## 
+## $K
+## [1] 24
+## 
+## $chi.square
+## [1] 31.90274
+## 
+## $df
+## [1] 24
+## 
+## $pval
+## [1] 0.1294229
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{ljung.wge}\NormalTok{(temp52, }\DataTypeTok{K =} \DecValTok{48}\NormalTok{)                           }\CommentTok{# Barely reject Ho, p-value=.032}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Obs 0.004099555 0.05624436 -0.05326951 0.0573932 -0.04861631 0.03098495 0.02718822 0.1004989 0.08851697 -0.01558239 -0.01477092 -0.08380333 -0.01536697 -0.05652122 -0.01491832 0.07303893 0.07379244 0.0110402 -0.03145286 -0.02226394 0.02004529 -0.0838127 0.02392291 0.07002157 0.03883168 0.004168604 0.005689672 -0.141479 -0.03792635 0.007452253 -0.03892399 -0.01262782 0.01859873 0.09041441 -0.06857444 -0.07895039 -0.02881891 0.06810352 -0.0138232 0.06763404 -0.06651562 0.07729948 -0.01803334 -0.0007800483 0.01314484 -0.06913632 0.03518071 -0.0288905
+\end{verbatim}
+
+\begin{verbatim}
+## $test
+## [1] "Ljung-Box test"
+## 
+## $K
+## [1] 48
+## 
+## $chi.square
+## [1] 67.73833
+## 
+## $df
+## [1] 48
+## 
+## $pval
+## [1] 0.0317127
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{acf}\NormalTok{(temp52,}\DataTypeTok{lag.max =} \DecValTok{48}\NormalTok{)                            }\CommentTok{# Box-Jenkins, acf looks consistent with white noise as previosly shown}
+
+\CommentTok{# although Ljung0-Box with K=48 barely rejects Ho, K=24 FTR Ho and Box-Jenkins ACF is consisten with white noise, looks good}
+
+\CommentTok{# Plot ARUMA Forecast}
+\NormalTok{predsTemp =}\StringTok{ }\KeywordTok{fore.aruma.wge}\NormalTok{(data}\OperatorTok{$}\NormalTok{temp, }\DataTypeTok{s=}\DecValTok{52}\NormalTok{, }\DataTypeTok{n.ahead=}\DecValTok{5}\NormalTok{, }\DataTypeTok{limits=}\NormalTok{F)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SBramhall_Final_files/figure-latex/Prob 3a-Univaritate Analysis for Temperature-2.pdf}
+\includegraphics{SBramhall_Final_files/figure-latex/Prob 3a-Univaritate Analysis for Temperature-3.pdf}
+
+ Univariate Analysis for Temperature
+
+Since the data is weekly, removing the weekly seasonality occurs first.
+The differenced data was checked by viewing the resulting ACF with 95\%
+confidence limits and results appear white. Next, the model was selected
+using the AIC and BIC criteria and both resulted in a ARMA(0,0) model.
+The Ljung-Box test with K=24 failed to reject the null but the Ljung-Box
+test with K=48 barely rejects Ho with a p-value=.032. However, the
+Box-Jenkins test support white noise so no concerns. Since the data is
+weekly seasonal, an ARUMA forecast is performed and results are saved
+for later use.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# -- Model cmort based on predicted part, predicted temp, and Week using MLR with Correlated Errors --}
+
+\NormalTok{ksfit =}\StringTok{ }\KeywordTok{lm}\NormalTok{(cmort}\OperatorTok{~}\NormalTok{temp}\OperatorTok{+}\NormalTok{part}\OperatorTok{+}\NormalTok{Week, }\DataTypeTok{data =}\NormalTok{ data)       }\CommentTok{# get linear fit to access residuals}
+
+\CommentTok{# get model for residuals}
+\NormalTok{phi =}\StringTok{ }\KeywordTok{aic.wge}\NormalTok{(ksfit}\OperatorTok{$}\NormalTok{residuals)                      }\CommentTok{# aic selects AR(2)}
+\NormalTok{phi}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## $type
+## [1] "aic"
+## 
+## $value
+## [1] 3.528269
+## 
+## $p
+## [1] 2
+## 
+## $q
+## [1] 0
+## 
+## $phi
+## [1] 0.2477388 0.3581387
+## 
+## $theta
+## [1] 0
+## 
+## $vara
+## [1] 33.66498
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# fit arima with residual phis, remove weekly seasonality and incl ext vars temp, part, week}
+\KeywordTok{attach}\NormalTok{(data)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## The following objects are masked from package:astsa:
+## 
+##     cmort, part
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fit =}\StringTok{ }\KeywordTok{arima}\NormalTok{(cmort,}\DataTypeTok{order=}\KeywordTok{c}\NormalTok{(phi}\OperatorTok{$}\NormalTok{p,}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{), }\DataTypeTok{seasonal=}\KeywordTok{list}\NormalTok{(}\DataTypeTok{order=}\KeywordTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{0}\NormalTok{,}\DecValTok{0}\NormalTok{),}\DataTypeTok{period=}\DecValTok{52}\NormalTok{), }\DataTypeTok{xreg =} \KeywordTok{cbind}\NormalTok{(temp, part, Week))}
+\NormalTok{fit}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## arima(x = cmort, order = c(phi$p, 0, 0), seasonal = list(order = c(1, 0, 0), 
+##     period = 52), xreg = cbind(temp, part, Week))
+## 
+## Coefficients:
+##          ar1     ar2   sar1  intercept    temp    part     Week
+##       0.3909  0.4149  0.082    87.5975  0.0258  0.1407  -0.0292
+## s.e.  0.0441  0.0404  0.049     4.0150  0.0530  0.0290   0.0086
+## 
+## sigma^2 estimated as 28.81:  log likelihood = -1575.14,  aic = 3166.29
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# The intercept is significantly different from 0, the particulates and Time are significant, but the temperature is not.}
+
+\CommentTok{# Check residuals for white noise}
+\KeywordTok{ljung.wge}\NormalTok{(fit}\OperatorTok{$}\NormalTok{residuals)                            }\CommentTok{# Barely reject, p-value=.048}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Obs -0.008773997 -0.006778 0.02847037 0.001592821 0.04173621 0.03014614 -0.02519791 -0.03614844 0.08896799 -0.04873154 0.003349583 0.04272511 -0.05378803 -0.03121467 0.1104465 -0.0511791 -0.05781976 -0.05203572 -0.1226383 -0.01661192 0.03274971 -0.06125045 -0.08319911 0.009083812
+\end{verbatim}
+
+\begin{verbatim}
+## $test
+## [1] "Ljung-Box test"
+## 
+## $K
+## [1] 24
+## 
+## $chi.square
+## [1] 36.59418
+## 
+## $df
+## [1] 24
+## 
+## $pval
+## [1] 0.04801085
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{ljung.wge}\NormalTok{(fit}\OperatorTok{$}\NormalTok{residuals, }\DataTypeTok{K =} \DecValTok{48}\NormalTok{)                    }\CommentTok{# Reject Ho, p-value=.003}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Obs -0.008773997 -0.006778 0.02847037 0.001592821 0.04173621 0.03014614 -0.02519791 -0.03614844 0.08896799 -0.04873154 0.003349583 0.04272511 -0.05378803 -0.03121467 0.1104465 -0.0511791 -0.05781976 -0.05203572 -0.1226383 -0.01661192 0.03274971 -0.06125045 -0.08319911 0.009083812 -0.06018696 -0.05789479 0.03458024 -0.1371038 -0.02600092 -0.07277285 -0.03981533 -0.03157352 0.009442916 -0.06678764 -0.05777429 -0.004599118 -0.01492029 -0.03032822 -0.004028157 -0.06378089 0.01029915 0.03886128 -0.006943152 0.04753463 0.04475963 0.0230044 0.1033364 0.110844
+\end{verbatim}
+
+\begin{verbatim}
+## $test
+## [1] "Ljung-Box test"
+## 
+## $K
+## [1] 48
+## 
+## $chi.square
+## [1] 79.51156
+## 
+## $df
+## [1] 48
+## 
+## $pval
+## [1] 0.002852882
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{acf}\NormalTok{(fit}\OperatorTok{$}\NormalTok{residuals,}\DataTypeTok{lag.max =} \DecValTok{48}\NormalTok{)                     }\CommentTok{# Box-Jenkins, acf looks}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SBramhall_Final_files/figure-latex/Prob 3a-Cmort MLR with Correlated Errors-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# acf show maybe 3 points out of 40 outside the limits but this really isn't bad}
+
+\CommentTok{# build DF of predicted variables}
+\NormalTok{last30 =}\StringTok{ }\KeywordTok{data.frame}\NormalTok{(}\DataTypeTok{temp =}\NormalTok{ data}\OperatorTok{$}\NormalTok{temp[}\DecValTok{479}\OperatorTok{:}\DecValTok{508}\NormalTok{], }\DataTypeTok{part =}\NormalTok{ data}\OperatorTok{$}\NormalTok{part[}\DecValTok{479}\OperatorTok{:}\DecValTok{508}\NormalTok{], }\DataTypeTok{Week =} \KeywordTok{seq}\NormalTok{(}\DecValTok{479}\NormalTok{,}\DecValTok{508}\NormalTok{,}\DecValTok{1}\NormalTok{))}
+
+\CommentTok{# get predictions}
+\NormalTok{predsCMort =}\StringTok{ }\KeywordTok{predict}\NormalTok{(fit,}\DataTypeTok{newxreg=}\NormalTok{last30)}
+
+\CommentTok{# plot the next 30 cmorts}
+\KeywordTok{plot}\NormalTok{(}\KeywordTok{seq}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{508}\NormalTok{,}\DecValTok{1}\NormalTok{),cmort,}\DataTypeTok{type=}\StringTok{"l"}\NormalTok{,}\DataTypeTok{xlim=}\KeywordTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{538}\NormalTok{),}\DataTypeTok{ylab=}\StringTok{"Cariac Mortality"}\NormalTok{,}\DataTypeTok{main=}\StringTok{"30 Week Cardiac Mortality Forecast"}\NormalTok{)}
+\KeywordTok{lines}\NormalTok{(}\KeywordTok{seq}\NormalTok{(}\DecValTok{509}\NormalTok{,}\DecValTok{538}\NormalTok{,}\DecValTok{1}\NormalTok{),predsCMort}\OperatorTok{$}\NormalTok{pred,}\DataTypeTok{type=}\StringTok{"l"}\NormalTok{,}\DataTypeTok{col=}\StringTok{"blue"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SBramhall_Final_files/figure-latex/Prob 3a-Cmort MLR with Correlated Errors-2.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ASE =}\StringTok{ }\KeywordTok{mean}\NormalTok{((data}\OperatorTok{$}\NormalTok{cmort[}\DecValTok{479}\OperatorTok{:}\DecValTok{508}\NormalTok{] }\OperatorTok{-}\StringTok{ }\NormalTok{predsCMort}\OperatorTok{$}\NormalTok{pred)}\OperatorTok{^}\DecValTok{2}\NormalTok{)}
+\NormalTok{ASE}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 56.59301
+\end{verbatim}
+
+ Cmort Multiple Linear Regression with Correlated Errors
+
+The goal is to develop a model to predict cardiac mortality. Since the
+variables were seen earlier to be independent a MLR model using
+correlated errors was chosen. A linear fit was performed using
+particulates, temperature, and time. AIC selecetd an AR(2) model for the
+residuals. The ARIMA function was used to fit the residuals, applying
+weekly seasonality and including external varibles temperature,
+particulate, and time (week \#). The fitted results showed the intercept
+is significantly different from 0, the particulates and time are
+significant, but the temperature is not.
+
+Next, the residuals were checked for white noise. The Ljung-Box test
+with K=24 barely rejects with a p-value=.048 and with K=48 it rejects
+Ho. When reviewing the ACFs, maybe 3 points our of 40 are outside the
+limits but this is not bad. Judgement is to proceed.
+
+A dataframe of the predicted temperature and particulates from the
+univariate analysis along with the week number was created. The plot
+above shows the realization with the predicted values in blue. The ASE
+for this model is \textbf{56.59}.
+
+\subsubsection{3b. Compare the models and describe which univariate
+model you feel is the best and
+why.}\label{b.-compare-the-models-and-describe-which-univariate-model-you-feel-is-the-best-and-why.}
+
+\subsubsection{4a. Perform a multivariate analysis using at least a VAR
+or MLR with correlated errors and a MLP model. Clearly explain how you
+arrived at the final model. Use forecasted values of the predictors
+where
+appropriate.}\label{a.-perform-a-multivariate-analysis-using-at-least-a-var-or-mlr-with-correlated-errors-and-a-mlp-model.-clearly-explain-how-you-arrived-at-the-final-model.-use-forecasted-values-of-the-predictors-where-appropriate.}
+
+\subsubsection{4b. Fit and evaluate an ensemble model from the models
+you fit in
+4a.}\label{b.-fit-and-evaluate-an-ensemble-model-from-the-models-you-fit-in-4a.}
+
+\subsubsection{4c. Compare these models and describe which multivariate
+model you feel is the best and
+why.}\label{c.-compare-these-models-and-describe-which-multivariate-model-you-feel-is-the-best-and-why.}
+
+\subsubsection{5. Use the model you feel is most useful to forecat the
+next 5 weeks of respiratory
+mortality.}\label{use-the-model-you-feel-is-most-useful-to-forecat-the-next-5-weeks-of-respiratory-mortality.}
+
+
+\end{document}
