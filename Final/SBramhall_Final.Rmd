@@ -19,6 +19,7 @@ library(psych)
 
 
 1. Plot the respiratory mortality data.
+
 ```{r Prob 1, results="hide"}
 data(lap) # import data
 data=data.frame(date=time(lap),Time=as.factor(seq(1,508,1)),as.matrix(lap)) # create data frame of data
@@ -32,209 +33,235 @@ acf(data$rmort[255:508]) # acf stationarity check
 
 2. Comment on stationarity or nonstationarity.
 
-The realization for respiratory mortality shows some pseudo cyclic behavior which makes sense since the data is weekly. The variance does not appear constant over time due to the pseudo cyclic spikes. The lags do not appear to be dependent on time as indicated by their divided ACFs. The evidence suggests nonstationarity. Since the data is weekly, that seasonality will be removed.
+The realization for respiratory mortality shows some pseudo cyclic behavior which makes sense since the data is weekly. The variance does not appear constant over time due to the pseudo cyclic spikes. The lags do not appear to be dependent on time as indicated by their divided ACFs. The evidence suggests nonstationarity. Since the data is weekly this is expected and the seasonality will be removed.
 
 3a. Perform a univariate analysis using AR, ARMA, ARMIA or ARUMA. Clearly explain how you arrived at your final model. Build a neural network based model. Build an ensemble model between the two models.
 
-```{r Prob 3a - Univariate ARUMA Model}
-dif1 = artrans.wge(data$rmort,c(rep(0,51),1))     # since the data is weekly, remove weekly trend
-dif2 = artrans.wge(dif1,1)                        # some fairly strong autocorrelation seen so let's remove some trend
-acf(dif2)                                         # now we are closer to being white
+```{r Prob 3a.a - Univariate ARUMA Model}
+# since the data is weekly, remove weekly trend
+dif1 = artrans.wge(data$rmort,c(rep(0,51),1))     
+
+# some fairly strong autocorrelation seen so let's remove some trend
+dif2 = artrans.wge(dif1,1)
+acf(dif2,lag.max=50)
+# now we are closer to being white
 
 # Perform model selection
-aic5.wge(dif2)                                    # AIC picks ARMA(3,2)
-aic5.wge(dif2,type = "bic")                       # BIC picks ARMA(1,0)
+aic5.wge(dif2)
+# AIC picks ARMA(3,2)
 
-# Check for white noise
-ljung.wge(dif2)                                   # Reject Ho, p-value=6.7e-11 so Ljung-Box with K=24 indicates not white
-ljung.wge(dif2, K = 48)                           # Reject Ho, p-value=4.1e-08 so Ljung-Box with K=48 indicates not white
-acf(dif2,lag.max = 50)                            # Box-Jenkins, not quite white but close, lag1 is still a bit strong
+aic5.wge(dif2,type = "bic")
+# BIC picks ARMA(1,0)
 
-# produce BIC recommended model
-estAR1=est.arma.wge(dif2,p=1,q=0)       
+# get estimates using the BIC recommended AR(1)
+estAR1=est.arma.wge(dif2,p=1,q=0)
 
-# produce AIC recommended the model
-estARMA32=est.arma.wge(dif2,p=3,q=2)      
+# get estimates using the AIC recommended ARMA(3,2)
+estARMA32=est.arma.wge(dif2,p=3,q=2)
 
-# let's forecast the BIC model
-ffore1=fore.aruma.wge(data$rmort[400:508],phi=estAR1$phi,theta=estAR1$theta,n.ahead=30,s=52,d=1,lastn=T)
+# with the AR(1) estimated parameters, let's create a forecast of the last 30 values
+foreAR1=fore.aruma.wge(data$rmort[400:508],phi=estAR1$phi,theta=estAR1$theta,n.ahead=30,s=52,d=1,lastn=T)
 
-# let's forecast the AIC model
-ffore2=fore.aruma.wge(data$rmort[400:508],phi=estARMA32$phi,theta=estARMA32$theta,n.ahead=30,s=52,d=1,lastn=T)
+# with the ARMA(3,2) estimated parameters, let's create a forecast of the last 30 values
+foreARMA32=fore.aruma.wge(data$rmort[400:508],phi=estARMA32$phi,theta=estARMA32$theta,n.ahead=30,s=52,d=1,lastn=T)
 
-# Get ASE from BIC recommended model
-ASE1 = mean((data$rmort[(508-30+1):508]-ffore1$f)^2)                  
+# Get ASE from AR(1) estimates
+ASE1 = mean((data$rmort[(508-30+1):508]-foreAR1$f)^2)
 ASE1
 
-# Get ASE from AIC recommended model
-ASE2 = mean((data$rmort[(508-30+1):508]-ffore2$f)^2)                  
+# Get ASE from ARMA(3,2) estimates
+ASE2 = mean((data$rmort[(508-30+1):508]-foreARMA32$f)^2)
 ASE2
 
-# We'll select the BIC recommended model with an ASE=3.44
+# The ARUMA BIC recommended model with an ASE=3.44 is the selected ARUMA model.
+# forecast next 5 points with BCX ARUMA
+foreAR1.new=fore.aruma.wge(data$rmort[400:508],phi=estAR1$phi,theta=estAR1$theta,n.ahead=5,s=52,d=1,lastn=F)
 
 ```
 
-```{r Prob 3a - Univariate Neural Network Model}
+Since the data is weekly, the weekly seasonality was removed. Although trend was not seen, there was still some strong autocorrelations so another difference was performed to obtain data that more closely resembled white noise. Four to five autocorrelations were greater than the limits (with two-three barely out) and out of fifty autocorrelations this is acceptable. The first two autocorrelations and strong which suggests an AR2.
+
+Then AIC was used to select a model and an AR(3,2) model was selected. Using BIC as the selection criteria, an AR(1) model was selected. Since the AIC and BIC did not agree on the same model both were used to create an ARUMA forecast. It should be noted that the estimated ARMA(3,2) had a root with an Absolute Reciprical = 0.9623 at a System Freq = .1927. Both estimated models has system frequencies at 0.5 with Absolute Recipricals at ~0.35.  The parameters for the AR(1) and ARMA(3,2) were used to create ARUMA forecasts for the last 30 weeks.
+
+The ASE was calculated for both models using their predicted values and the actual values. The ARUMA model with AR(1) estimated parameters (BIC recommended) produced an ASE = 3.44117 and the ARUMA model with ARMA(3,2) estimated parameters (AIC recommended) produced an ASE = 3.516085. The selected model will be the one with the lower ASE score and it is:
+
+ARUMA with estimated AR(1) paramters -> ASE = 3.44
+
+
+Now we create a univariate neural network model.
+```{r Prob 3a.b - Univariate Neural Network Model}
 set.seed(2)
-rmortTrain = ts(data$rmort[1:478],frequency=52) # training data
 
-# Last 30 weeks in the Test Set
-rmortTest = ts(data$rmort[479:508],frequency=52) # test data, 30 pts
+# create training data split
+rmortTrain = ts(data$rmort[1:478],frequency=52) 
 
-# fit the NN model
-fit.mlp=mlp(rmortTrain,difforder=NULL,allow.det.season = FALSE) # ADDED DIFFORDER
+# create test data split - last 30 weeks 
+rmortTest = ts(data$rmort[479:508],frequency=52)
+
+# fit the NN model, let the function identify the best diff order(s)
+fit.mlp=mlp(rmortTrain,difforder=NULL,allow.det.season = FALSE)
 fit.mlp
 
-# plot NN
+# plot the NN
 plot(fit.mlp)
 
-# forecast
-fore.mlp=forecast(fit.mlp,h=30)
+# forecast the test data + 5 more weeks
+fore.mlp=forecast(fit.mlp,h=35)
 
-# plot forecast
+# plot the forecast of the test data
 plot(fore.mlp)
 
-# calc ASE
-ASE = mean((rmortTest-fore.mlp$mean)^2)
-ASE
+
+# Plot forecast of test data over actual data
+plot(seq(1,508,1), data$rmort, type = "l",xlim = c(0,508), ylab = "Respiratory Mortality", main = "Neural Net Resp-Mortality Predicted Over Actual Last 30 Weeks")
+lines(seq(479,508,1), fore.mlp$mean[1:30], type = "l", col = "red")
+
+
+# calc ASE based on the forecasted and actual test data
+ASE3 = mean((data$rmort[479:508]-fore.mlp$mean[1:30])^2)
+ASE3
+```
+
+Next, a multilayer perceptron (MLP) function was used to create a neural network model. Default parameters were used in addition to telling the function to identify the best difference order(s) and restricting modeling seasonality with deterministic dummies.
+
+The neural network model has 5 hidden nodes and 20 repetitions. There were 10 univariate lags which are the inputs. The neural network model produced and ASE = 10.23 which is not as good as the ARUMA model. Predicted values appear to be above the actuals.
+
+Neural Network Model -> ASE = 10.23
+
+```{r Prob 3a.c - Ensemble Model}
+# build ensemble using ave of the two forecasts
+ensemble  = (foreAR1$f + fore.mlp$mean[1:30])/2
+
+# plot the ensemble results
+plot(seq(1,508,1), data$rmort, type = "l",xlim = c(0,508), ylab = "Respiratory Mortality", main = "Ensemble Resp-Mortality Predicted Over Actual Last 30 Weeks")
+lines(seq(479,508,1), ensemble, type = "l", col = "green")
+
+# calc ensemble ASE
+ASE4 = mean((data$rmort[(508-30+1):508] - ensemble)^2)
+ASE4
+
+# forecast of next 5 weeks
+foreAR1.all = append(foreAR1$f,foreAR1.new$f) # AR1 data with 5 week forecast
+ensemble.new = (foreAR1.all + fore.mlp$mean[1:35])/2
+ensemble.new[31:35] # predicted 5 week values
+
+plot(seq(1,508,1), data$rmort, type = "l",xlim = c(0,515), ylab = "Respiratory Mortality", main = "Ensemble Resp-Mortality Predicted Over Actual Last 30 Weeks Plus 5 Week Forecast")
+lines(seq(479,513,1), ensemble.new, type = "l", col = "blue")
 
 ```
 
+An ensemble model was built using the average of the ARUMA and Neural Network forecasts. The predicted values are a little above the actual values but this model produced the lowest ASE at 2.29. Since this model produced the lowest ASE, it is the recommended model for the univariate analysis or repiratory mortalty. The forecasted next 5 weeks resembles the previous patterns with values of (12.31, 12.65, 12.21, 12.98, 13.39).
+
+Ensemble Model -> ASE = 2.29 (selected univariate model)
 
 
+
+
+###4a. Perform a multivariate analysis using at least a VAR or MLR with correlated errors and a MLP model. Clearly explain how you arrived at the final model. Use forecasted values of the predictors where appropriate.
+
+View correlaiton between all variables.
 ```{r Check correlation between variables}
-pairs.panels(mort[5:12], 
+par(mfrow=c(4,4))
+plotts.wge(data$tempr)
+plotts.wge(data$rh)
+plotts.wge(data$co)
+plotts.wge(data$so2)
+plotts.wge(data$no2)
+plotts.wge(data$hycarb)
+plotts.wge(data$o3)
+plotts.wge(data$part)
+# variables appear to be serially correlated
+
+pairs.panels(data[5:12], 
              method = "pearson",   # correlation method
              hist.col = "#00AFBB",
              density = TRUE,       # show density plots
              ellipses = TRUE       # show correlation ellipses
              )
-```
+# the correlation matrix shows strong correlation between the following variables
+# - co2, no2
+# - co2, hycarb
+# - tempr, o3
+# - so2, no2
+# - so2, hycarb
+# - no2, hycarb
 
-The variables appear independent so we will proceed with a univariate analysis followed by Multiple Linear Regression (MLR) with correlated errors.
+# plot the temp
+plotts.sample.wge(data$tempr)
+acf(data$tempr[1:254])    # acf stationarity check
+acf(data$tempr[255:508])  # acf stationarity check
 
-###2. Comment on stationarity or nonstationarity.
+# plot the rh
+plotts.sample.wge(data$rh)
+acf(data$rh[1:254])   # acf stationarity check
+acf(data$rh[255:508]) # acf stationarity check
 
-The realizations for mortality, particulates, and temperature have some pseudo cyclic behavior with multiple frequencies which is an indicator of correlation. Their means and variances appear constant over time. Their lags do not appear to be dependent on time as indicated by their divided ACFs. There may be some slight wandering with the cardiac mortality realization but this is one realization so the evidence suggests stationarity.
+# plot the co
+plotts.sample.wge(data$co)
+acf(data$co[1:254])   # acf stationarity check
+acf(data$co[255:508]) # acf stationarity check
 
+# plot the so2
+plotts.sample.wge(data$so2)
+acf(data$so2[1:254])   # acf stationarity check
+acf(data$so2[255:508]) # acf stationarity check
 
-###3a. Perform a univariate analysis using AR, ARMA, ARMIA or ARUMA. Clearly explain how you arrived at your final model. Build a neural network based model. Build an ensemble model between the two models.
+# plot the no2
+plotts.sample.wge(data$no2)
+acf(data$no2[1:254])   # acf stationarity check
+acf(data$no2[255:508]) # acf stationarity check
 
-```{r Prob 3a-Univaritate Analysis for Particulates}
+# plot the rh
+plotts.sample.wge(data$hycarb)
+acf(data$hycarb[1:254])   # acf stationarity check
+acf(data$hycarb[255:508]) # acf stationarity check
 
-# -- Univariate Analysis of Particulates Using ARUMA --
+# plot the 03
+plotts.sample.wge(data$o3)
+acf(data$o3[1:254])   # acf stationarity check
+acf(data$o3[255:508]) # acf stationarity check
 
-part52 = artrans.wge(data$part,c(rep(0,51),1))      # since the data is weekly, remove weekly trend
-acf(part52)                                         # confirm ACF is ~ white noise, it is!
+# plot the pollution
+plotts.sample.wge(data$part)
+acf(data$part[1:254])    # acf stationarity check
+acf(data$part[255:508])  # acf stationarity check
 
-# Perform model selection
-aic5.wge(part52)                                    # AIC picks ARMA(2,1)
-aic5.wge(part52,type = "bic")                       # BIC picks ARMA(2,1)
+# since the data is weekly, remove weekly trend. some var realizations are noisy but seasonality is still seen
+diftemp = artrans.wge(data$tempr,c(rep(0,51),1))
+acf(diftemp,lag.max = 50)
 
-# Check for white noise
-ljung.wge(part52)                                   # FTR, p-value=.11
-ljung.wge(part52, K = 48)                           # FTR, p-value=.302
-acf(part52,lag.max = 48)                            # Box-Jenkins, acf looks consistent with white noise as previosly shown
+difrh = artrans.wge(data$rh,c(rep(0,51),1))
+acf(difrh,lag.max = 50)
 
-# Plot ARUMA forecast, using ARUMA due to known weekly seasonality of data
-predsPart = fore.aruma.wge(data$part,s = 52, n.ahead=5,limits=F)
-```
+# nope
+difco = artrans.wge(data$co,c(rep(0,51),1))
+acf(difco,lag.max = 50)
+difco_51.1 = artrans.wge(difco,phi.tr=1)
+acf(difco_51.1,lag.max = 50)
 
-Univariate Analysis for Particulates
+# nope
+difso2 = artrans.wge(data$so2,c(rep(0,51),1))
+acf(difso2,lag.max = 50)
+difso2_52.1=artrans.wge(difso2,phi.tr = 1)
+acf(difso2_52.1,lag.max = 50)
 
-Since the data is weekly, removing the weekly seasonality occurs first. The differenced data is checked by viewing the resulting ACF with 95% confidence limits and results appear white. Next, the model is selected using the AIC and BIC criteria and both result in a ARMA(2,1) model. The  Ljung-Box test with K=24 and K=48 both fail to reject the null and the Box-Jenkins test all support white noise. Since the data is weekly seasonal, an ARUMA forecast is performed and results are saved for later use.
+difno2 = artrans.wge(data$no2,c(rep(0,51),1))
+acf(difno2,lag.max = 50)
 
-```{r Prob 3a-Univaritate Analysis for Temperature}
+# nope
+difhycarb = artrans.wge(data$hycarb,c(rep(0,51),1))
+acf(difhycarb,lag.max = 50)
+difhycarb_52.1=artrans.wge(difhycarb,phi.tr = 1)
+acf(difhycarb_52.1,lag.max = 50)
 
-# -- Univariate Analysis of Temperatures Using ARUMA --
+difo3 = artrans.wge(data$o3,c(rep(0,51),1))
+acf(difo3,lag.max = 50)
 
-temp52 = artrans.wge(data$temp,c(rep(0,51),1))      # since we know the data is weekly, remove weekly trend
-acf(temp52)                                         # confirm ACF is ~ white noise, it is!
-
-# model selection
-aic5.wge(temp52)                                    # AIC picks ARMA(0,0)
-aic5.wge(temp52,type = "bic")                       # BIC picks ARMA(0,0)
-
-# Check for white noise
-ljung.wge(temp52)                                   # FTR, p-value=.129
-ljung.wge(temp52, K = 48)                           # Barely reject Ho, p-value=.032
-acf(temp52,lag.max = 48)                            # Box-Jenkins, acf looks consistent with white noise as previosly shown
-
-# although Ljung0-Box with K=48 barely rejects Ho, K=24 FTR Ho and Box-Jenkins ACF is consisten with white noise, looks good
-
-# Plot ARUMA Forecast
-predsTemp = fore.aruma.wge(data$temp, s=52, n.ahead=5, limits=F)
-```
-
-Univariate Analysis for Temperature
-
-Since the data is weekly, removing the weekly seasonality occurs first. The differenced data was checked by viewing the resulting ACF with 95% confidence limits and results appear white. Next, the model was selected using the AIC and BIC criteria and both resulted in a ARMA(0,0) model. The  Ljung-Box test with K=24 failed to reject the null but the Ljung-Box test with K=48 barely rejects Ho with a p-value=.032. However, the Box-Jenkins test support white noise so no concerns. Since the data is weekly seasonal, an ARUMA forecast is performed and results are saved for later use.
-
-
-```{r Prob 3a-Cmort MLR with Correlated Errors}
-
-# -- Model cmort based on predicted part, predicted temp, and Week using MLR with Correlated Errors --
-
-ksfit = lm(cmort~temp+part+Week, data = data)       # get linear fit to access residuals
-
-# get model for residuals
-phi = aic.wge(ksfit$residuals)                      # aic selects AR(2)
-phi
-
-# fit arima with residual phis, remove weekly seasonality and incl ext vars temp, part, week
-attach(data)
-fit = arima(cmort,order=c(phi$p,0,0), seasonal=list(order=c(1,0,0),period=52), xreg = cbind(temp, part, Week))
-fit
-
-# The intercept is significantly different from 0, the particulates and Time are significant, but the temperature is not.
-
-# Check residuals for white noise
-ljung.wge(fit$residuals)                            # Barely reject, p-value=.048
-ljung.wge(fit$residuals, K = 48)                    # Reject Ho, p-value=.003
-acf(fit$residuals,lag.max = 48)                     # Box-Jenkins, acf looks
-
-# acf show maybe 3 points out of 40 outside the limits but this really isn't bad
-
-# build DF of predicted variables
-last30 = data.frame(temp = data$temp[479:508], part = data$part[479:508], Week = seq(479,508,1))
-
-# get predictions
-predsCMort = predict(fit,newxreg=last30)
-
-# plot the next 30 cmorts
-plot(seq(1,508,1),cmort,type="l",xlim=c(0,538),ylab="Cariac Mortality",main="30 Week Cardiac Mortality Forecast")
-lines(seq(509,538,1),predsCMort$pred,type="l",col="blue")
-
-ASE = mean((data$cmort[479:508] - predsCMort$pred)^2)
-ASE
-
-```
-
-Cmort Multiple Linear Regression with Correlated Errors
-
-The goal is to develop a model to predict cardiac mortality. Since the variables were seen earlier to be independent a MLR model using correlated errors was chosen. A linear fit was performed using particulates, temperature, and time. AIC selecetd an AR(2) model for the residuals. The ARIMA function was used to fit the residuals, applying weekly seasonality and including external varibles temperature, particulate, and time (week #). The fitted results showed the intercept is significantly different from 0, the particulates and time are significant, but the temperature is not.
-
-Next, the residuals were checked for white noise. The Ljung-Box test with K=24 barely rejects with a p-value=.048 and with K=48 it rejects Ho. When reviewing the ACFs, maybe 3 points our of 40 are outside the limits but this is not bad. Judgement is to proceed. 
-
-A dataframe of the predicted temperature and particulates from the univariate analysis along with the week number was created. The plot above shows the realization with the predicted values in blue. The ASE for this model is **56.59**.
-
-
-```{r Prob 3a-Cmort Neural Network Model}
-
-
+difpart = artrans.wge(data$part,c(rep(0,51),1))
+acf(difo3,lag.max = 50)
 ```
 
 
-
-###3b. Compare the models and describe which univariate model you feel is the best and why.
-```{r Prob 3b}
-
-```
-
-###4a. Perform a multivariate analysis using at least a VAR or MLR with correlated errors and a MLP model. Clearly explain how you arrived at the final model. Use forecasted values of the predictors where appropriate.
-```{r}
-
-```
 
 ###4b. Fit and evaluate an ensemble model from the models you fit in 4a.
 ```{r}
@@ -252,5 +279,9 @@ A dataframe of the predicted temperature and particulates from the univariate an
 ```
 
 
+# Check for white noise
+ljung.wge(dif2)                                   # Reject Ho, p-value=6.7e-11 so Ljung-Box with K=24 indicates not white
+ljung.wge(dif2, K = 48)                           # Reject Ho, p-value=4.1e-08 so Ljung-Box with K=48 indicates not white
+acf(dif2,lag.max = 50)                            # Box-Jenkins, not quite white but close, lag1 is still a bit strong
 
 
